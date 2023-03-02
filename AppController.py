@@ -6,29 +6,48 @@ import json
 class AppController():
     
     def __init__(self):
-        self.traktConfig = self.__loadTraktConfig()
+        self.traktConfig = self.__LoadTraktConfig()
         self.trakt = TraktAPI(self.traktConfig['clientID'])
-    
-    def backupWatchedHistory(self):
-        self.trakt.getHistory(self.traktConfig['accessToken'])
 
-    def authorizeTraktUser(self):
-        if not self.__traktUserAuthorized():
-            result = self.trakt.authorizeUser(self.traktConfig['clientID'], self.traktConfig['clientSecret'])
+
+    def AuthorizeTraktUser(self):
+        if not self.__TraktUserAuthorized():
+            result = self.trakt.AuthorizeUser(self.traktConfig['clientID'], self.traktConfig['clientSecret'])
             if (result['code'] == TraktAPIUtils.SUCCESS):
                 self.traktConfig['accessToken'] = result['accessToken']
                 self.traktConfig['refreshToken'] = result['refreshToken']
-                self.__saveConfig()
+                self.__SaveConfig()
             return result['code']
         return TraktAPIUtils.SUCCESS
+    
+    def BackupWatchedHistory(self):
+        page = 1
+        syncing = True
+        statusCode = TraktAPIUtils.SUCCESS
+        while (syncing and statusCode == TraktAPIUtils.SUCCESS):
+            statusCode, data = self.trakt.GetHistoryPage(page, self.traktConfig['accessToken'])
+            if (statusCode == TraktAPIUtils.SUCCESS):
+                syncing, statusCode = self.__ProcessTraktPlays(data)
+            page += 1
+        
+        return statusCode
+    
+    def __ProcessTraktPlays(self, plays):
 
-    def __traktUserAuthorized(self):
+        for play in plays:
+            print(str(play['id']) + " " + str(play['type']) + " " + str(play['watched_at']))
+
+        syncing = True if len(plays) == TraktAPIUtils.SYNC_MAX_LIMIT else False
+
+        return syncing, TraktAPIUtils.SUCCESS
+
+    def __TraktUserAuthorized(self):
         if (self.traktConfig['accessToken'] != ''):
             return True
         else:
             return False
 
-    def __loadTraktConfig(self):
+    def __LoadTraktConfig(self):
         with open('settings.json', 'r') as configFile:
             data = json.load(configFile)
             traktConfig = {
@@ -40,6 +59,6 @@ class AppController():
 
         return traktConfig
 
-    def __saveConfig(self):
+    def __SaveConfig(self):
         with open('settings.json', 'w') as configFile:
             json.dump(self.traktConfig, configFile)

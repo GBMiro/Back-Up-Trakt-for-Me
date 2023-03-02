@@ -14,7 +14,7 @@ class TraktAPI:
             'trakt-api-version': self.traktAPIVersion
         }
 
-    def authorizeUser(self, clientID, clientSecret):
+    def AuthorizeUser(self, clientID, clientSecret):
 
         authorizeHeader = {'Content-type': 'application/json'}
 
@@ -35,11 +35,11 @@ class TraktAPI:
             url = self.baseURL + '/oauth/device/token'
             tokenResponse = requests.post(url , json=tokenData, headers=authorizeHeader)
 
-            tryingToGetTokenTime = 0
+            pullTime = 0
 
-            while (tokenResponse.status_code != TraktAPIUtils.SUCCESS and tryingToGetTokenTime < authorizationData['expires_in']) :
+            while (tokenResponse.status_code != TraktAPIUtils.SUCCESS and pullTime < authorizationData['expires_in']) :
                 time.sleep(authorizationData['interval'])
-                tryingToGetTokenTime += authorizationData['interval']
+                pullTime += authorizationData['interval']
                 tokenResponse = requests.post(url, json=tokenData, headers=authorizeHeader)
                 print (tokenResponse.status_code)
 
@@ -48,15 +48,15 @@ class TraktAPI:
             else:
                 tokenData = tokenResponse.json()
                 return {'accessToken' : tokenData['access_token'], 'refresh_token' : tokenData['refresh_token'], 'code' : tokenResponse.status_code}
+   
+    def GetHistoryPage(self, page, accessToken):
+        
+        historyHeader = self.headers
+        historyHeader['Authorization'] = "Bearer " + accessToken
 
-            
-    def getHistory(self, accessToken):
-        page = 1
-        self.headers['Authorization'] = "Bearer " + accessToken
-        response = requests.get(self.baseURL + '/sync/history?extended=full&page={}&limit={}'.format(page, TraktAPIUtils.SYNC_MAX_LIMIT), headers=self.headers)
+        response = requests.get(self.baseURL + '/sync/history?extended=full&page={}&limit={}'.format(page, TraktAPIUtils.SYNC_MAX_LIMIT), headers=historyHeader)
 
         if response.status_code == TraktAPIUtils.SUCCESS :
-            data = response.json()
-            return data, response.status_code
+            return response.status_code, response.json()
         else:
-            return None, response.status_code
+            return response.status_code, None

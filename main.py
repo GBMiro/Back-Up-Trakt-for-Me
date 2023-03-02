@@ -3,9 +3,9 @@ import TraktAPI.TraktAPIUtils as TraktAPIUtils
 
 def main():
     controller = AppController()
-    codeStatus = controller.authorizeTraktUser()
-    if (codeStatus == TraktAPIUtils.SUCCESS):
-        controller.backupWatchedHistory()
-    else:
-        print (TraktAPIUtils.statusMessages[codeStatus])
+    statusCode = controller.AuthorizeTraktUser()
+    if (statusCode == TraktAPIUtils.SUCCESS):
+        statusCode = controller.BackupWatchedHistory()
+        
+    print (TraktAPIUtils.statusMessages[statusCode])
 main()
