@@ -1,6 +1,6 @@
 import requests
 import time
-import TraktAPI.APIStatusCodes as APIStatusCodes
+import TraktAPI.TraktAPIUtils as TraktAPIUtils
 
 class TraktAPI:
 
@@ -8,7 +8,6 @@ class TraktAPI:
     traktAPIVersion = '2'
 
     def __init__(self, clientID):
-        self.traktConfig = {}
         self.headers = {
             'Content-type': 'application/json',
             'trakt-api-key': clientID,
@@ -23,7 +22,7 @@ class TraktAPI:
 
         response = requests.post(self.baseURL + '/oauth/device/code', json=postData, headers=authorizeHeader)
 
-        if (response.status_code == APIStatusCodes.SUCCESS):
+        if (response.status_code == TraktAPIUtils.SUCCESS):
             authorizationData = response.json()
             print ("Go to " + authorizationData['verification_url'] + " in your browser and input the following code: " + authorizationData['user_code'])
 
@@ -38,24 +37,25 @@ class TraktAPI:
 
             tryingToGetTokenTime = 0
 
-            while (tokenResponse.status_code != APIStatusCodes.SUCCESS and tryingToGetTokenTime < authorizationData['expires_in']) :
+            while (tokenResponse.status_code != TraktAPIUtils.SUCCESS and tryingToGetTokenTime < authorizationData['expires_in']) :
                 time.sleep(authorizationData['interval'])
                 tryingToGetTokenTime += authorizationData['interval']
                 tokenResponse = requests.post(url, json=tokenData, headers=authorizeHeader)
                 print (tokenResponse.status_code)
 
-            if (tokenResponse.status_code != APIStatusCodes.SUCCESS) : 
+            if (tokenResponse.status_code != TraktAPIUtils.SUCCESS) : 
                 return {'accessToken' : None, 'refresh_token' : None, 'code' : tokenResponse.status_code}
             else:
                 tokenData = tokenResponse.json()
                 return {'accessToken' : tokenData['access_token'], 'refresh_token' : tokenData['refresh_token'], 'code' : tokenResponse.status_code}
 
             
-    def getHistory(self):
-        self.headers['Authorization'] = "Bearer " + self.traktConfig['accessToken']
-        response = requests.get(self.baseURL + '/sync/history/?page=1&limit=10000', headers=self.headers)
+    def getHistory(self, accessToken):
+        page = 1
+        self.headers['Authorization'] = "Bearer " + accessToken
+        response = requests.get(self.baseURL + '/sync/history?extended=full&page={}&limit={}'.format(page, TraktAPIUtils.SYNC_MAX_LIMIT), headers=self.headers)
 
-        if response.status_code == APIStatusCodes.SUCCESS :
+        if response.status_code == TraktAPIUtils.SUCCESS :
             data = response.json()
             return data, response.status_code
         else:

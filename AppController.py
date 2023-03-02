@@ -1,5 +1,5 @@
 from TraktAPI.TraktAPI import TraktAPI
-import TraktAPI.APIStatusCodes as APIStatusCodes
+import TraktAPI.TraktAPIUtils as TraktAPIUtils
 import json
 
 
@@ -10,17 +10,17 @@ class AppController():
         self.trakt = TraktAPI(self.traktConfig['clientID'])
     
     def backupWatchedHistory(self):
-        print ("")
+        self.trakt.getHistory(self.traktConfig['accessToken'])
 
     def authorizeTraktUser(self):
         if not self.__traktUserAuthorized():
             result = self.trakt.authorizeUser(self.traktConfig['clientID'], self.traktConfig['clientSecret'])
-            if (result['code'] == APIStatusCodes.SUCCESS):
+            if (result['code'] == TraktAPIUtils.SUCCESS):
                 self.traktConfig['accessToken'] = result['accessToken']
                 self.traktConfig['refreshToken'] = result['refreshToken']
                 self.__saveConfig()
             return result['code']
-        return APIStatusCodes.SUCCESS
+        return TraktAPIUtils.SUCCESS
 
     def __traktUserAuthorized(self):
         if (self.traktConfig['accessToken'] != ''):

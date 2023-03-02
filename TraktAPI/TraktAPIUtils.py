@@ -19,3 +19,7 @@ statusMessages = {
     RATE_LIMIT_EXCEEDED : 'Rate Limit Exceeded',
     SERVER_ERROR : 'Server Error - please open a support ticket'
 }
+
+# Trakt Synchronization limit
+
+SYNC_MAX_LIMIT = 1000
