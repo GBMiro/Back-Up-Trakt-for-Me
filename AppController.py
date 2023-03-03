@@ -1,4 +1,5 @@
 from TraktAPI.TraktAPI import TraktAPI
+from Database.DatabaseManager import DatabaseManager
 import TraktAPI.TraktAPIUtils as TraktAPIUtils
 import json
 
@@ -8,6 +9,7 @@ class AppController():
     def __init__(self):
         self.traktConfig = self.__LoadTraktConfig()
         self.trakt = TraktAPI(self.traktConfig['clientID'])
+        self.database = DatabaseManager()
 
 
     def AuthorizeTraktUser(self):
@@ -30,11 +32,13 @@ class AppController():
                 syncing, statusCode = self.__ProcessTraktPlays(data)
             page += 1
         
+        self.database.CloseDatabase()
         return statusCode
     
     def __ProcessTraktPlays(self, plays):
 
         for play in plays:
+            self.database.AddPlay(play)
             print(str(play['id']) + " " + str(play['type']) + " " + str(play['watched_at']))
 
         syncing = True if len(plays) == TraktAPIUtils.SYNC_MAX_LIMIT else False
