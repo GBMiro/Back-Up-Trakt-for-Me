@@ -71,7 +71,7 @@ class DatabaseManager():
             self.__CreateMoviesTable()
 
     def __TableCreated(self, name):
-        self.cursor.execute("SELECT tbl_name FROM sqlite_master WHERE type='table' AND tbl_name = ?", (name,))
+        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name = ?", (name,))
         return True if len(self.cursor.fetchall()) > 0 else False
 
     def __CreateEpisodesTable(self):

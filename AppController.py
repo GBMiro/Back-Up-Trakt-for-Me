@@ -35,6 +35,21 @@ class AppController():
         self.database.CloseDatabase()
         return statusCode
     
+    def GetAccessToken(self):
+        return self.traktConfig['accessToken']
+    
+    def GetRefreshToken(self):
+        return self.traktConfig['refreshToken']
+    
+    def GetClientID(self):
+        return self.traktConfig['clientID']
+    
+    def GetClientSecret(self):
+        return self.traktConfig['clientSecret']
+    
+    def SaveTraktConfig(self):
+        self.__SaveConfig()
+    
     def __ProcessTraktPlays(self, plays):
 
         for play in plays:
