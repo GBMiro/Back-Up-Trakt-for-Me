@@ -1,38 +1,46 @@
-from TraktAPI.TraktAPI import TraktAPI
+from Trakt.TraktAPI import TraktAPI
 from Database.DatabaseManager import DatabaseManager
-import TraktAPI.TraktAPIUtils as TraktAPIUtils
+from Utils.Logger import Logger
+import Utils.Trakt as Trakt
 import json
 
 
 class AppController():
     
-    def __init__(self):
+    def __init__(self, showLog=True):
+        self.logger = Logger(showLog, "CONTROLLER")
         self.traktConfig = self.__LoadTraktConfig()
-        self.trakt = TraktAPI(self.traktConfig['clientID'])
+        self.trakt = TraktAPI(showLog, self.traktConfig['clientID'])
         self.database = DatabaseManager()
 
 
     def AuthorizeTraktUser(self):
         if not self.__TraktUserAuthorized():
             result = self.trakt.AuthorizeUser(self.traktConfig['clientID'], self.traktConfig['clientSecret'])
-            if (result['code'] == TraktAPIUtils.SUCCESS):
+            if (result['code'] == Trakt.SUCCESS):
                 self.traktConfig['accessToken'] = result['accessToken']
                 self.traktConfig['refreshToken'] = result['refreshToken']
                 self.__SaveConfig()
             return result['code']
-        return TraktAPIUtils.SUCCESS
+        return Trakt.SUCCESS
     
     def BackupWatchedHistory(self):
         page = 1
         syncing = True
-        statusCode = TraktAPIUtils.SUCCESS
-        while (syncing and statusCode == TraktAPIUtils.SUCCESS):
+        statusCode = Trakt.SUCCESS
+        self.database.OpenDatabase()
+        while (syncing and statusCode == Trakt.SUCCESS):
             statusCode, data = self.trakt.GetHistoryPage(page, self.traktConfig['accessToken'])
-            if (statusCode == TraktAPIUtils.SUCCESS):
+            if (statusCode == Trakt.SUCCESS):
                 syncing, statusCode = self.__ProcessTraktPlays(data)
             page += 1
         
         self.database.CloseDatabase()
+        message = Trakt.statusMessages[statusCode]
+        if (self.logger.GetStatus()):
+            self.logger.ShowMessage(message)
+        else:
+            print(message)
         return statusCode
     
     def GetAccessToken(self):
@@ -54,14 +62,23 @@ class AppController():
 
         for play in plays:
             self.database.AddPlay(play)
-            print(str(play['id']) + " " + str(play['type']) + " " + str(play['watched_at']))
+            message = str(play['id']) + " " + str(play['type']) + " " + str(play['watched_at'])
+            if (self.logger.GetStatus()):
+                self.logger.ShowMessage(message)
+            else:
+                print(message)
 
-        syncing = True if len(plays) == TraktAPIUtils.SYNC_MAX_LIMIT else False
+        syncing = True if len(plays) == Trakt.SYNC_MAX_LIMIT else False
 
-        return syncing, TraktAPIUtils.SUCCESS
+        return syncing, Trakt.SUCCESS
 
     def __TraktUserAuthorized(self):
         if (self.traktConfig['accessToken'] != ''):
+            message = "User already authorized"
+            if (self.logger.GetStatus()):
+                self.logger.ShowMessage(message)
+            else:
+                print(message)
             return True
         else:
             return False
@@ -76,8 +93,20 @@ class AppController():
                 'refreshToken' : data['refreshToken']
             }
 
+            message = "Trakt config loaded"
+            if (self.logger.GetStatus()):
+                self.logger.ShowMessage(message)
+            else:
+                print(message)
+
         return traktConfig
 
     def __SaveConfig(self):
         with open('settings.json', 'w') as configFile:
             json.dump(self.traktConfig, configFile)
+
+        message = "Trakt config saved"
+        if (self.logger.GetStatus()):
+            self.logger.ShowMessage(message)
+        else:
+            print(message)

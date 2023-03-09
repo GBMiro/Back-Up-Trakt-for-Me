@@ -9,10 +9,17 @@ formatTo="%Y-%m-%d %H:%M:%S"
 class DatabaseManager():
 
     def __init__(self):
+        self.connection = ""
+        self.cursor = ""
+        self.OpenDatabase()
+        self.__CreateTables()
+        self.CloseDatabase()
+
+    def OpenDatabase(self):
         self.connection = sqlite3.connect(".\\Database\\trakt_history.db")
         self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
-        self.__CreateTables()
+
 
     def CloseDatabase(self):
         self.__SaveChanges()
