@@ -1,5 +1,6 @@
 import sqlite3
 import json
+from Utils.Logger import Logger
 from datetime import datetime
 from dateutil import tz
 
@@ -8,7 +9,8 @@ formatTo="%Y-%m-%d %H:%M:%S"
 
 class DatabaseManager():
 
-    def __init__(self):
+    def __init__(self, showLog):
+        self.logger = Logger(showLog, "DATABASE")
         self.connection = ""
         self.cursor = ""
         self.OpenDatabase()
@@ -49,6 +51,9 @@ class DatabaseManager():
         self.cursor.execute("INSERT INTO episodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (play_ID) DO NOTHING",
                             (playID, watchedAt, watchedAtLocal, type, season, number,
                             episodeTitle, json.dumps(episodeIDs), runtime, showTitle, showYear, json.dumps(showIDs)))
+        
+        message = "Play: {} - {}x{} {} {}".format(showTitle, season, number, episodeTitle, watchedAtLocal)
+        self.__Log(message)
 
 
     def __InsertMovie(self, play):
@@ -63,6 +68,9 @@ class DatabaseManager():
 
         self.cursor.execute("INSERT INTO movies VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (play_ID) DO NOTHING",
                             (playID, watchedAt, watchedAtLocal, type, title, year, runtime, json.dumps(movieIDs)))
+        
+        message = "Play: {} ({}) {}".format(title, year, watchedAtLocal)
+        self.__Log(message)
 
 
     def __ConvertToLocalTime(self, watchedAt):
@@ -114,5 +122,11 @@ class DatabaseManager():
             PRIMARY KEY("play_ID"))
         """)
     
+    def __Log(self, message):
+        if (self.logger.GetStatus()):
+            self.logger.ShowMessage(message)
+        else:
+            print(message)
+
     def __SaveChanges(self):
         self.connection.commit()

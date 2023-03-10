@@ -11,7 +11,7 @@ class AppController():
         self.logger = Logger(showLog, "CONTROLLER")
         self.traktConfig = self.__LoadTraktConfig()
         self.trakt = TraktAPI(showLog, self.traktConfig['clientID'])
-        self.database = DatabaseManager()
+        self.database = DatabaseManager(showLog)
 
 
     def AuthorizeTraktUser(self):
@@ -36,11 +36,9 @@ class AppController():
             page += 1
         
         self.database.CloseDatabase()
-        message = Trakt.statusMessages[statusCode]
-        if (self.logger.GetStatus()):
-            self.logger.ShowMessage(message)
-        else:
-            print(message)
+        message = "Process finished. Code result: " + str(statusCode) + " " + Trakt.statusMessages[statusCode]
+        self.__Log(message)
+
         return statusCode
     
     def GetAccessToken(self):
@@ -57,16 +55,17 @@ class AppController():
     
     def SaveTraktConfig(self):
         self.__SaveConfig()
+
+    def __Log(self, message):
+        if (self.logger.GetStatus()):
+            self.logger.ShowMessage(message)
+        else:
+            print(message)
     
     def __ProcessTraktPlays(self, plays):
 
         for play in plays:
             self.database.AddPlay(play)
-            message = str(play['id']) + " " + str(play['type']) + " " + str(play['watched_at'])
-            if (self.logger.GetStatus()):
-                self.logger.ShowMessage(message)
-            else:
-                print(message)
 
         syncing = True if len(plays) == Trakt.SYNC_MAX_LIMIT else False
 
@@ -75,10 +74,7 @@ class AppController():
     def __TraktUserAuthorized(self):
         if (self.traktConfig['accessToken'] != ''):
             message = "User already authorized"
-            if (self.logger.GetStatus()):
-                self.logger.ShowMessage(message)
-            else:
-                print(message)
+            self.__Log(message)
             return True
         else:
             return False
@@ -94,10 +90,7 @@ class AppController():
             }
 
             message = "Trakt config loaded"
-            if (self.logger.GetStatus()):
-                self.logger.ShowMessage(message)
-            else:
-                print(message)
+            self.__Log(message)
 
         return traktConfig
 
@@ -106,7 +99,4 @@ class AppController():
             json.dump(self.traktConfig, configFile)
 
         message = "Trakt config saved"
-        if (self.logger.GetStatus()):
-            self.logger.ShowMessage(message)
-        else:
-            print(message)
+        self.__Log(message)

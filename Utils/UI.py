@@ -1,27 +1,33 @@
-# WINDOWS / TABS
+# Tags used in dearpygui system.
 
-MAIN_WINDOW = 1
-CONSOLE_WINDOW = 2
-BACKUP_TAB = 3
-TRAKT_TAB = 4
+# WINDOWS & TABS
 
-# BACKUP TAB
+MAIN_WINDOW = "main_window"
+CONSOLE_WINDOW = "console_window"
+BACKUP_TAB = "backup_tab"
+TRAKT_TAB = "trakt_tab"
 
-    # BUTTONS #
 
-BACKUP_BUTTON = 30
+# INPUTS #
 
-# TRAKT TAB 
+CLIENT_ID = "client_ID"
+CLIENT_SECRET = "client_secret"
+ACCES_TOKEN = "access_token"
+REFRESH_TOKEN = "refresh_token"
 
-    # INPUTS #
+# BUTTONS #
 
-CLIENT_ID = 40
-CLIENT_SECRET = 41
-ACCES_TOKEN = 42
-REFRESH_TOKEN = 43
+BACKUP_BUTTON = "backup_button"
 
-    # BUTTONS #
+SCROLL_BUTTON = "scroll"
+CLEAR_BUTTON = "clear"
 
-AUTHORIZE_BUTTON = 44
-REFRESH_BUTTON = 45
-SAVE_BUTTON = 46
+AUTHORIZE_BUTTON = "authorize"
+REFRESH_BUTTON = "refresh"
+SAVE_BUTTON = "save"
+# --------------------------------------- #
+
+# VIEWPORT SETTINGS #
+
+VIEWPORT_MIN_WIDTH = 700
+VIEWPORT_MIN_HEIGHT = 600
