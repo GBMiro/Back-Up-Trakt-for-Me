@@ -81,7 +81,7 @@ def LoadTraktSettings():
     logger.ShowMessage("Trakt settings UI updated")
 
 logger = Logger(True, "UI")
-controller = AppController()
+controller = AppController(True)
 LoadTraktSettings()
 
 GUI.setup_dearpygui()

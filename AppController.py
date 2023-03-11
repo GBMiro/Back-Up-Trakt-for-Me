@@ -37,7 +37,7 @@ class AppController():
         
         self.database.CloseDatabase()
         message = "Process finished. Code result: " + str(statusCode) + " " + Trakt.statusMessages[statusCode]
-        self.__Log(message)
+        self.logger.ShowMessage(message)
 
         return statusCode
     
@@ -55,12 +55,6 @@ class AppController():
     
     def SaveTraktConfig(self):
         self.__SaveConfig()
-
-    def __Log(self, message):
-        if (self.logger.GetStatus()):
-            self.logger.ShowMessage(message)
-        else:
-            print(message)
     
     def __ProcessTraktPlays(self, plays):
 
@@ -74,7 +68,7 @@ class AppController():
     def __TraktUserAuthorized(self):
         if (self.traktConfig['accessToken'] != ''):
             message = "User already authorized"
-            self.__Log(message)
+            self.logger.ShowMessage(message)
             return True
         else:
             return False
@@ -90,7 +84,7 @@ class AppController():
             }
 
             message = "Trakt config loaded"
-            self.__Log(message)
+            self.logger.ShowMessage(message)
 
         return traktConfig
 
@@ -99,4 +93,4 @@ class AppController():
             json.dump(self.traktConfig, configFile)
 
         message = "Trakt config saved"
-        self.__Log(message)
+        self.logger.ShowMessage(message)

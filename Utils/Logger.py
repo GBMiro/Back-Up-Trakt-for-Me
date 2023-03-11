@@ -15,12 +15,17 @@ class Logger:
         return self.logToUI
 
     def ShowMessage(self, message):
-        GUI.add_text("[" + self.tag + "] " + message, parent=UI.CONSOLE_WINDOW)
-        self.ScrollToBottom()
+        if (self.logToUI):
+            GUI.add_text("[" + self.tag + "] " + message, parent=UI.CONSOLE_WINDOW)
+            self.ScrollToBottom()
+        else:
+            print (message)
 
     def ScrollToBottom(self):
-        GUI.set_y_scroll(UI.CONSOLE_WINDOW, -1.0)
+        if (self.logToUI):
+            GUI.set_y_scroll(UI.CONSOLE_WINDOW, -1.0)
 
     def Clear(self):
-        GUI.delete_item(UI.CONSOLE_WINDOW, children_only=True)
+        if (self.logToUI):
+            GUI.delete_item(UI.CONSOLE_WINDOW, children_only=True)
 

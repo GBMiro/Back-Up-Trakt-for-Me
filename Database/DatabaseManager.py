@@ -53,7 +53,7 @@ class DatabaseManager():
                             episodeTitle, json.dumps(episodeIDs), runtime, showTitle, showYear, json.dumps(showIDs)))
         
         message = "Play: {} - {}x{} {} {}".format(showTitle, season, number, episodeTitle, watchedAtLocal)
-        self.__Log(message)
+        self.logger.ShowMessage(message)
 
 
     def __InsertMovie(self, play):
@@ -70,7 +70,7 @@ class DatabaseManager():
                             (playID, watchedAt, watchedAtLocal, type, title, year, runtime, json.dumps(movieIDs)))
         
         message = "Play: {} ({}) {}".format(title, year, watchedAtLocal)
-        self.__Log(message)
+        self.logger.ShowMessage(message)
 
 
     def __ConvertToLocalTime(self, watchedAt):
@@ -121,12 +121,6 @@ class DatabaseManager():
             "movie_ids" TEXT NOT NULL,
             PRIMARY KEY("play_ID"))
         """)
-    
-    def __Log(self, message):
-        if (self.logger.GetStatus()):
-            self.logger.ShowMessage(message)
-        else:
-            print(message)
 
     def __SaveChanges(self):
         self.connection.commit()
