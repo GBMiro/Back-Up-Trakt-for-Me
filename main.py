@@ -6,13 +6,13 @@ import dearpygui.dearpygui as GUI
 # Trakt configuration functions
 
 def AuthorizeUser(sender, app_data, user_data):
+    id = GUI.get_value(UI.CLIENT_ID)
+    secret = GUI.get_value(UI.CLIENT_SECRET)
+    controller.SetTraktConfig(id, secret)
     controller.AuthorizeTraktUser()
 
 def RefreshUserToken(sender, app_data, user_data):
     pass
-
-def SaveTraktConfiguration(sender, app_data, user_data):
-    controller.SaveTraktConfig()
 
 # Application functions
 
@@ -38,9 +38,31 @@ with GUI.window(tag=UI.MAIN_WINDOW, no_collapse=True, no_move=True, show=True, n
     with GUI.tab_bar():
         with GUI.tab(tag=UI.BACKUP_TAB, label="Backup/Restore"):
             GUI.add_text()
-            with GUI.group(horizontal=True, horizontal_spacing=75):
-                GUI.add_button(tag=UI.BACKUP_BUTTON, label="Backup history", callback=BackupHistory, width=GUI.get_viewport_min_width())
+            with GUI.group(horizontal=True):
+                GUI.add_button(tag=UI.BACKUP_BUTTON, label="Backup history", callback=BackupHistory, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
                 GUI.add_text()
+
+                # BACKUP LIST
+                
+                with GUI.table(header_row=True, no_host_extendX=True, delay_search=True,
+                            borders_innerH=True, borders_outerH=True, borders_innerV=True,
+                            borders_outerV=True, context_menu_in_body=True, row_background=False,
+                            policy=GUI.mvTable_SizingFixedFit, height=300,
+                            scrollY=True):
+                    GUI.add_table_column(label="Play ID")
+                    GUI.add_table_column(label="Watched at")
+                    GUI.add_table_column(label="Show/Movie")
+                    GUI.add_table_column(label="Season")
+                    GUI.add_table_column(label="Episode")
+                    GUI.add_table_column(label="Title")
+
+                    with GUI.table_row():
+                        GUI.add_text("281793871")
+                        GUI.add_text("2023/02/15 12:04")
+                        GUI.add_text("Lost")
+                        GUI.add_text("4")
+                        GUI.add_text("5")
+                        GUI.add_text("The Constant")
 
         with GUI.tab(label="Trakt API Settings"):
             GUI.add_text("API Key", show_label=True)
@@ -49,7 +71,7 @@ with GUI.window(tag=UI.MAIN_WINDOW, no_collapse=True, no_move=True, show=True, n
             GUI.add_text("Client Secret", show_label=True)
             GUI.add_input_text(tag=UI.CLIENT_SECRET, default_value="Your client secret")
             GUI.add_separator()
-            GUI.add_text("Acces Token", show_label=True)
+            GUI.add_text("Access Token", show_label=True)
             GUI.add_input_text(tag=UI.ACCES_TOKEN, default_value="Your access token")
             GUI.add_separator()
             GUI.add_text("Refresh Token", show_label=True)
@@ -59,7 +81,6 @@ with GUI.window(tag=UI.MAIN_WINDOW, no_collapse=True, no_move=True, show=True, n
             with GUI.group(horizontal=True):
                 authorizeButton = GUI.add_button(tag=UI.AUTHORIZE_BUTTON, label="Authorize User", callback=AuthorizeUser)
                 refreshButton = GUI.add_button(tag=UI.REFRESH_BUTTON, label="Refresh Token", callback=RefreshUserToken)
-                saveCongig = GUI.add_button(tag=UI.SAVE_BUTTON, label="Save", callback=SaveTraktConfiguration)
          
     with GUI.group():
         GUI.add_text("Console", parent=UI.MAIN_WINDOW)

@@ -25,9 +25,14 @@ CLEAR_BUTTON = "clear"
 AUTHORIZE_BUTTON = "authorize"
 REFRESH_BUTTON = "refresh"
 SAVE_BUTTON = "save"
+
+# HISTORY #
+
+HISTORY_LIST = "history"
+
 # --------------------------------------- #
 
 # VIEWPORT SETTINGS #
 
-VIEWPORT_MIN_WIDTH = 700
+VIEWPORT_MIN_WIDTH = 1000
 VIEWPORT_MIN_HEIGHT = 600

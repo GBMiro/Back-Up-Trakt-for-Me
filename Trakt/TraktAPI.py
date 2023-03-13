@@ -27,7 +27,7 @@ class TraktAPI:
 
         if (response.status_code == Trakt.SUCCESS):
             authorizationData = response.json()
-            message = "Go to " + authorizationData['verification_url'] + " in your browser and input the following code: " + authorizationData['user_code']
+            message = "Go to {} in your browser and input the following code: {}".format(authorizationData['verification_url'], authorizationData['user_code'])
             self.logger.ShowMessage(message)
 
             tokenData = {
@@ -45,20 +45,24 @@ class TraktAPI:
                 time.sleep(authorizationData['interval'])
                 pullTime += authorizationData['interval']
                 tokenResponse = requests.post(url, json=tokenData, headers=authorizeHeader)
-                message = tokenResponse.status_code
+                message = "Response code: {}".format(tokenResponse.status_code)
                 self.logger.ShowMessage(message)
 
             if (tokenResponse.status_code != Trakt.SUCCESS) : 
-                message = "Could not authoriz user. Code: " + response.status_code + " " + Trakt.statusMessages[response.status_code]
+                message = "Could not authorize user. Code: {} {}".format(response.status_code, Trakt.statusMessages[response.status_code])
                 self.logger.ShowMessage(message)
                 return {'accessToken' : None, 'refresh_token' : None, 'code' : tokenResponse.status_code}
             else:
                 tokenData = tokenResponse.json()
                 return {'accessToken' : tokenData['access_token'], 'refresh_token' : tokenData['refresh_token'], 'code' : tokenResponse.status_code}
-   
+        else:
+            message = "Could not authorize user. Code: {} {}".format(response.status_code, Trakt.statusMessages[response.status_code])
+            self.logger.ShowMessage(message)
+            return response.status_code
+        
     def GetHistoryPage(self, page, accessToken):
 
-        message = "Requesting history page " + str(page)
+        message = "Requesting history page {}".format(page)
         self.logger.ShowMessage(message)
         
         historyHeader = self.headers
@@ -69,6 +73,6 @@ class TraktAPI:
         if response.status_code == Trakt.SUCCESS :
             return response.status_code, response.json()
         else:
-            message = "Could not download page. Code: " + response.status_code + " " + Trakt.statusMessages[response.status_code]
+            message = "Could not download page. Code: {} {}".format(response.status_code, Trakt.statusMessages[response.status_code])
             self.logger.ShowMessage(message)
             return response.status_code, None

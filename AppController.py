@@ -53,7 +53,9 @@ class AppController():
     def GetClientSecret(self):
         return self.traktConfig['clientSecret']
     
-    def SaveTraktConfig(self):
+    def SetTraktConfig(self, id, secret):
+        self.traktConfig['clientID'] = id
+        self.traktConfig['clientSecret'] = secret
         self.__SaveConfig()
     
     def __ProcessTraktPlays(self, plays):
