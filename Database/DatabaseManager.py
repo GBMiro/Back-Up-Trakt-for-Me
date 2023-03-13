@@ -1,5 +1,6 @@
 import sqlite3
 import json
+from Utils.Logger import Logger
 from datetime import datetime
 from dateutil import tz
 
@@ -8,11 +9,19 @@ formatTo="%Y-%m-%d %H:%M:%S"
 
 class DatabaseManager():
 
-    def __init__(self):
+    def __init__(self, showLog):
+        self.logger = Logger(showLog, "DATABASE")
+        self.connection = ""
+        self.cursor = ""
+        self.OpenDatabase()
+        self.__CreateTables()
+        self.CloseDatabase()
+
+    def OpenDatabase(self):
         self.connection = sqlite3.connect(".\\Database\\trakt_history.db")
         self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
-        self.__CreateTables()
+
 
     def CloseDatabase(self):
         self.__SaveChanges()
@@ -42,6 +51,9 @@ class DatabaseManager():
         self.cursor.execute("INSERT INTO episodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (play_ID) DO NOTHING",
                             (playID, watchedAt, watchedAtLocal, type, season, number,
                             episodeTitle, json.dumps(episodeIDs), runtime, showTitle, showYear, json.dumps(showIDs)))
+        
+        message = "Play: {} - {}x{} {} {}".format(showTitle, season, number, episodeTitle, watchedAtLocal)
+        self.logger.ShowMessage(message)
 
 
     def __InsertMovie(self, play):
@@ -56,6 +68,9 @@ class DatabaseManager():
 
         self.cursor.execute("INSERT INTO movies VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (play_ID) DO NOTHING",
                             (playID, watchedAt, watchedAtLocal, type, title, year, runtime, json.dumps(movieIDs)))
+        
+        message = "Play: {} ({}) {}".format(title, year, watchedAtLocal)
+        self.logger.ShowMessage(message)
 
 
     def __ConvertToLocalTime(self, watchedAt):
@@ -71,7 +86,7 @@ class DatabaseManager():
             self.__CreateMoviesTable()
 
     def __TableCreated(self, name):
-        self.cursor.execute("SELECT tbl_name FROM sqlite_master WHERE type='table' AND tbl_name = ?", (name,))
+        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name = ?", (name,))
         return True if len(self.cursor.fetchall()) > 0 else False
 
     def __CreateEpisodesTable(self):
@@ -106,6 +121,6 @@ class DatabaseManager():
             "movie_ids" TEXT NOT NULL,
             PRIMARY KEY("play_ID"))
         """)
-    
+
     def __SaveChanges(self):
         self.connection.commit()
