@@ -17,23 +17,25 @@ REFRESH_TOKEN = "refresh_token"
 
 # BUTTONS #
 
-BACKUP_BUTTON = "backup_button"
-LOAD_BACKUP_BUTTON = "load_backup"
+BACKUP = "backup_button"
+SHOW_HISTORY = "all"
+SHOW_EPISODES = "episodes"
+SHOW_MOVIES = "movies"
 
-SCROLL_BUTTON = "scroll"
-CLEAR_BUTTON = "clear"
+SCROLL = "scroll"
+CLEAR = "clear"
 
-AUTHORIZE_BUTTON = "authorize"
-REFRESH_BUTTON = "refresh"
-SAVE_BUTTON = "save"
+AUTHORIZE = "authorize"
+REFRESH = "refresh"
+SAVE = "save"
 
-# HISTORY #
+# TABLES #
 
-HISTORY_TABLE = "history"
+HISTORY_TABLE = "history_table"
 
 # --------------------------------------- #
 
 # VIEWPORT SETTINGS #
 
 VIEWPORT_MIN_WIDTH = 1250
-VIEWPORT_MIN_HEIGHT = 600
+VIEWPORT_MIN_HEIGHT = 700

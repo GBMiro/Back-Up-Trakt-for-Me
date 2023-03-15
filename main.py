@@ -1,6 +1,7 @@
 from AppController import AppController
 from Utils.Logger import Logger
 import Utils.UI as UI
+import Utils.Database as DB
 import dearpygui.dearpygui as GUI
 
 # Trakt configuration functions
@@ -26,18 +27,18 @@ def ClearConsole(sender, app_data, user_data):
 def ScrollDown(sender, app_data, user_data):
     logger.ScrollToBottom()
 
-def UpdateHistoryView():
+def UpdateHistoryView(sender):
     GUI.delete_item(UI.HISTORY_TABLE, children_only=True, slot=1)
-    data = controller.GetHistoryData()
+    data = controller.GetHistoryData(sender)
 
     for play in data:
-        type = play['type']
-        id = play['play_ID']
-        episode = "-" if type == 'movie' else play['Episode']
-        season = "-" if type == 'movie' else play['Season']
-        name = play['Title']
-        date = play['Date']
-        episodeTitle = "-" if type == 'movie' else play['Episode Title']
+        type = play[DB.TYPE]
+        id = play[DB.ID]
+        episode = "-" if type == 'movie' else play[DB.NUMBER]
+        season = "-" if type == 'movie' else play[DB.SEASON]
+        name = play[DB.TITLE]
+        date = play[DB.DATE]
+        episodeTitle = "-" if type == 'movie' else play[DB.EPISODE_TITLE]
 
         with GUI.table_row(parent=UI.HISTORY_TABLE):
             GUI.add_text(id)
@@ -56,12 +57,18 @@ with GUI.window(tag=UI.MAIN_WINDOW, no_collapse=True, no_move=True, show=True, n
     with GUI.tab_bar():
         with GUI.tab(tag=UI.BACKUP_TAB, label="Backup"):
             GUI.add_text()
-            GUI.add_button(tag=UI.BACKUP_BUTTON, label="Backup history", callback=BackupHistory, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
+            GUI.add_button(tag=UI.BACKUP, label="Backup history", callback=BackupHistory, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
             GUI.add_text()
-            GUI.add_button(tag=UI.LOAD_BACKUP_BUTTON, label="Show last backup info", callback=UpdateHistoryView, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
+            GUI.add_separator()
+            with GUI.group(horizontal=True, horizontal_spacing=50):
+                GUI.add_button(tag=UI.SHOW_HISTORY, label="Show all history", callback=UpdateHistoryView, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
+                GUI.add_button(tag=UI.SHOW_EPISODES, label="Show only episodes", callback=UpdateHistoryView, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
+                GUI.add_button(tag=UI.SHOW_MOVIES, label="Show only movies", callback=UpdateHistoryView, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
+
+            GUI.add_separator()
             GUI.add_text()
 
-            # BACKUP LIST
+            # History plays table
             with GUI.table(tag=UI.HISTORY_TABLE, header_row=True, no_host_extendX=True, delay_search=True,
                         borders_innerH=True, borders_outerH=True, borders_innerV=True,
                         borders_outerV=True, context_menu_in_body=True, row_background=True,
@@ -90,16 +97,16 @@ with GUI.window(tag=UI.MAIN_WINDOW, no_collapse=True, no_move=True, show=True, n
             GUI.add_text()
 
             with GUI.group(horizontal=True):
-                authorizeButton = GUI.add_button(tag=UI.AUTHORIZE_BUTTON, label="Authorize User", callback=AuthorizeUser)
-                refreshButton = GUI.add_button(tag=UI.REFRESH_BUTTON, label="Refresh Token", callback=RefreshUserToken)
+                authorizeButton = GUI.add_button(tag=UI.AUTHORIZE, label="Authorize User", callback=AuthorizeUser)
+                refreshButton = GUI.add_button(tag=UI.REFRESH, label="Refresh Token", callback=RefreshUserToken)
          
     with GUI.group():
         GUI.add_text("Console", parent=UI.MAIN_WINDOW)
         GUI.add_separator(parent=UI.MAIN_WINDOW)
 
     with GUI.group(horizontal=True):
-        GUI.add_button(tag=UI.SCROLL_BUTTON, label="Scroll to bottom", callback=ScrollDown)
-        GUI.add_button(tag=UI.CLEAR_BUTTON, label="Clear", callback=ClearConsole)
+        GUI.add_button(tag=UI.SCROLL, label="Scroll to bottom", callback=ScrollDown)
+        GUI.add_button(tag=UI.CLEAR, label="Clear", callback=ClearConsole)
 
     with GUI.child_window(tag=UI.CONSOLE_WINDOW, label="Log"):
         pass
@@ -114,7 +121,7 @@ def LoadTraktSettings():
 logger = Logger(True, "UI")
 controller = AppController(True)
 LoadTraktSettings()
-UpdateHistoryView()
+UpdateHistoryView(UI.SHOW_HISTORY)
 
 GUI.setup_dearpygui()
 GUI.set_viewport_resizable(True)

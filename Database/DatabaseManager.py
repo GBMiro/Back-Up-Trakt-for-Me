@@ -35,13 +35,25 @@ class DatabaseManager():
             self.__InsertMovie(play)
 
     def GetHistory(self):
-        self.cursor.execute("""SELECT type, play_ID, show_title as "Title", episode_title as "Episode Title", season as "Season", number as "Episode", watched_at_local as "Date"
+        self.cursor.execute("""SELECT type, play_ID, show_title as "title", episode_title, season, number, watched_at_local
                             FROM episodes
                             UNION
                             SELECT type, play_ID, title, NULL, NULL, NULL, watched_at_local
                             FROM movies
                             ORDER BY watched_at_local DESC""")
         
+        return self.cursor.fetchall()
+    
+    def GetMovies(self):
+        self.cursor.execute("""SELECT type, play_ID, title, NULL, NULL, NULL, watched_at_local
+                            FROM movies
+                            ORDER BY watched_at_local DESC""")
+        return self.cursor.fetchall()
+
+    def GetEpisodes(self):
+        self.cursor.execute("""SELECT type, play_ID, show_title as "title", episode_title, season, number, watched_at_local
+                            FROM episodes
+                            ORDER BY watched_at_local DESC""")
         return self.cursor.fetchall()
 
     def __InsertEpisode(self, play):

@@ -1,6 +1,7 @@
 from Trakt.TraktAPI import TraktAPI
 from Database.DatabaseManager import DatabaseManager
 from Utils.Logger import Logger
+import Utils.UI as UI
 import Utils.StatusCodes as StatusCodes
 import json
 
@@ -74,10 +75,18 @@ class AppController():
         self.traktConfig['clientSecret'] = secret
         self.__SaveConfig()
 
-    def GetHistoryData(self):
+    def GetHistoryData(self, sender):
         self.database.OpenDatabase()
-        plays = self.database.GetHistory()
+        plays = []
+        message = "Getting {} plays from database".format(sender)
+        if (sender == UI.SHOW_HISTORY):
+            plays = self.database.GetHistory()
+        elif (sender == UI.SHOW_EPISODES):
+            plays = self.database.GetEpisodes()
+        else:
+            plays = self.database.GetMovies()
         self.database.CloseDatabase()
+        self.logger.ShowMessage(message)
         return plays
     
     def __ProcessTraktPlays(self, plays):
