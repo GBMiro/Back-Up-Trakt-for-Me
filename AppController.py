@@ -73,6 +73,12 @@ class AppController():
         self.traktConfig['clientID'] = id
         self.traktConfig['clientSecret'] = secret
         self.__SaveConfig()
+
+    def GetHistoryData(self):
+        self.database.OpenDatabase()
+        plays = self.database.GetHistory()
+        self.database.CloseDatabase()
+        return plays
     
     def __ProcessTraktPlays(self, plays):
 
@@ -84,7 +90,7 @@ class AppController():
         return syncing, StatusCodes.TRAKT_SUCCESS
 
     def __TraktUserAuthorized(self):
-        if (len(self.traktConfig['accessToken']) == '64'):
+        if (len(self.traktConfig['accessToken']) == 64):
             return True
         else:
             return False

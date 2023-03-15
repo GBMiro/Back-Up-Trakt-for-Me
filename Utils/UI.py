@@ -18,6 +18,7 @@ REFRESH_TOKEN = "refresh_token"
 # BUTTONS #
 
 BACKUP_BUTTON = "backup_button"
+LOAD_BACKUP_BUTTON = "load_backup"
 
 SCROLL_BUTTON = "scroll"
 CLEAR_BUTTON = "clear"
@@ -28,11 +29,11 @@ SAVE_BUTTON = "save"
 
 # HISTORY #
 
-HISTORY_LIST = "history"
+HISTORY_TABLE = "history"
 
 # --------------------------------------- #
 
 # VIEWPORT SETTINGS #
 
-VIEWPORT_MIN_WIDTH = 1000
+VIEWPORT_MIN_WIDTH = 1250
 VIEWPORT_MIN_HEIGHT = 600

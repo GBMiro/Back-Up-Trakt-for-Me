@@ -34,6 +34,16 @@ class DatabaseManager():
         else:
             self.__InsertMovie(play)
 
+    def GetHistory(self):
+        self.cursor.execute("""SELECT type, play_ID, show_title as "Title", episode_title as "Episode Title", season as "Season", number as "Episode", watched_at_local as "Date"
+                            FROM episodes
+                            UNION
+                            SELECT type, play_ID, title, NULL, NULL, NULL, watched_at_local
+                            FROM movies
+                            ORDER BY watched_at_local DESC""")
+        
+        return self.cursor.fetchall()
+
     def __InsertEpisode(self, play):
         playID = play['id']
         type = play['type']
