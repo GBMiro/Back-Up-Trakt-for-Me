@@ -114,7 +114,7 @@ class AppController():
                     'accessToken' : data['accessToken'],
                     'refreshToken' : data['refreshToken']
                 }
-            message = "Trakt config loaded"
+            message = "Trakt config loaded from settings.json"
         except Exception as err:
             message = "An error occurred when loading the settings file. {}".format(err)
             traktConfig = {'clientID' : "", 'clientSecret' : "", 'accessToken' : "", 'refreshToken' : ""}
@@ -126,7 +126,7 @@ class AppController():
         try:
             with open('settings.json', 'w') as configFile:
                 json.dump(self.traktConfig, configFile)
-            message = "Trakt config saved"
+            message = "Trakt config saved to settings.json"
         except Exception as err:
             message = "An error occurred when saving the settings file. {}".format(err)
         finally:
