@@ -1,5 +1,6 @@
 from AppController import AppController
 from Utils.Logger import Logger
+import Utils.StatusCodes as StatusCodes
 import Utils.UI as UI
 import Utils.Database as DB
 import dearpygui.dearpygui as GUI
@@ -40,27 +41,28 @@ def UpdateUITraktSettings():
 def UpdateHistoryTable(sender):
     GUI.delete_item(UI.HISTORY_TABLE, children_only=True)
     AddColumnsToTable(sender)
-    data = controller.GetHistoryData(sender)
+    data, statusCode = controller.GetHistoryData(sender)
 
-    for play in data:
-        type = play[DB.TYPE]
-        id = play[DB.ID]
-        season = "-" if type == 'movie' else play[DB.SEASON]
-        episodeNumber = "-" if type == 'movie' else play[DB.NUMBER]
-        episodeTitle = "-" if type == 'movie' else play[DB.EPISODE_TITLE]
-        name = play[DB.TITLE]
-        date = play[DB.DATE]
-        
-
-        with GUI.table_row(parent=UI.HISTORY_TABLE):
-            GUI.add_text(id)
-            GUI.add_text(date)
-            GUI.add_text(name)
-            GUI.add_text(season)
-            GUI.add_text(episodeNumber)
-            GUI.add_text(episodeTitle)
+    if (statusCode == StatusCodes.CONTROLLER_OK):
+        for play in data:
+            type = play[DB.TYPE]
+            id = play[DB.ID]
+            season = "-" if type == 'movie' else play[DB.SEASON]
+            episodeNumber = "-" if type == 'movie' else play[DB.NUMBER]
+            episodeTitle = "-" if type == 'movie' else play[DB.EPISODE_TITLE]
+            name = play[DB.TITLE]
+            date = play[DB.DATE]
             
-    logger.ShowMessage("Showing {} plays from last database backup".format(len(data)))
+            with GUI.table_row(parent=UI.HISTORY_TABLE):
+                GUI.add_text(id)
+                GUI.add_text(date)
+                GUI.add_text(name)
+                GUI.add_text(season)
+                GUI.add_text(episodeNumber)
+                GUI.add_text(episodeTitle)
+                
+        logger.ShowMessage("Showing {} plays from last database backup".format(len(data)))
+
 
 def AddColumnsToTable(sender):
 
@@ -79,7 +81,6 @@ def AddColumnsToTable(sender):
         GUI.add_table_column(parent=UI.HISTORY_TABLE, label="Number")
         GUI.add_table_column(parent=UI.HISTORY_TABLE, label="Episode title")
         
-
 
 def BuildUserInterface():
 
@@ -125,8 +126,8 @@ def BuildUserInterface():
                 GUI.add_text()
 
                 with GUI.group(horizontal=True):
-                    authorizeButton = GUI.add_button(tag=UI.AUTHORIZE, label="Authorize User", callback=AuthorizeUser)
-                    refreshButton = GUI.add_button(tag=UI.REFRESH, label="Refresh Token", callback=RefreshUserToken)
+                    GUI.add_button(tag=UI.AUTHORIZE, label="Authorize User", callback=AuthorizeUser)
+                    GUI.add_button(tag=UI.REFRESH, label="Refresh Token", callback=RefreshUserToken)
             
         with GUI.group():
             GUI.add_text("Console", parent=UI.MAIN_WINDOW)

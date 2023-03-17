@@ -35,23 +35,26 @@ class AppController():
             self.logger.ShowMessage(message)
             return StatusCodes.TRAKT_UNAUTHORIZED
         
+        self.logger.ShowMessage("Starting backup process...")
         page = 1
         syncing = True
-        statusCode = StatusCodes.TRAKT_SUCCESS
+        statusCode = StatusCodes.CONTROLLER_OK
         totalPlays = 0
         self.database.OpenDatabase()
-        while (syncing and statusCode == StatusCodes.TRAKT_SUCCESS):
+        while (syncing and statusCode == StatusCodes.CONTROLLER_OK):
             statusCode, data = self.trakt.GetHistoryPage(page, self.traktConfig['clientID'], self.traktConfig['accessToken'])
             if (statusCode == StatusCodes.TRAKT_SUCCESS):
                 message = "Processing plays from page {}".format(page)
                 self.logger.ShowMessage(message)
                 syncing, statusCode = self.__ProcessTraktPlays(data)
-                totalPlays += len(data)
-                page += 1
+                
+                if (statusCode == StatusCodes.CONTROLLER_OK):
+                    totalPlays += len(data)
+                    page += 1
         
         self.database.CloseDatabase()
-        if (statusCode != StatusCodes.TRAKT_SUCCESS):
-            message = "Backup history finished with an error. {} pages were processed. Check previous logs for more info".format(page - 1)
+        if (statusCode != StatusCodes.CONTROLLER_OK):
+            message = "Backup history finished with an error. Pages processed: {}. Plays stored: {}. Check previous logs for more info".format(page - 1, totalPlays)
         else:
             message = "Backup history finished. Pages processed: {}. Total plays found: {}".format(page - 1, totalPlays)
         self.logger.ShowMessage(message)
@@ -76,27 +79,36 @@ class AppController():
         self.__SaveConfig()
 
     def GetHistoryData(self, sender):
+        self.logger.ShowMessage("Querying database for {} plays...".format(sender))
         self.database.OpenDatabase()
         plays = []
-        message = "Getting {} plays from database".format(sender)
+
         if (sender == UI.SHOW_HISTORY):
-            plays = self.database.GetHistory()
+            plays, statusCode = self.database.GetHistory()
         elif (sender == UI.SHOW_EPISODES):
-            plays = self.database.GetEpisodes()
+            plays, statusCode = self.database.GetEpisodes()
         else:
-            plays = self.database.GetMovies()
+            plays, statusCode = self.database.GetMovies()
         self.database.CloseDatabase()
-        self.logger.ShowMessage(message)
-        return plays
+        if (statusCode != StatusCodes.DATABASE_OK):
+            self.logger.ShowMessage("Request finished with an error. Check previous logs")
+        else:
+            statusCode = StatusCodes.CONTROLLER_OK
+
+        return plays, statusCode
     
     def __ProcessTraktPlays(self, plays):
 
+        statusCode = None
+
         for play in plays:
-            self.database.AddPlay(play)
+            statusCode = self.database.AddPlay(play)
+            if (statusCode != StatusCodes.DATABASE_OK):
+                return False, statusCode
 
         syncing = True if len(plays) == self.trakt.GetSyncLimit() else False
 
-        return syncing, StatusCodes.TRAKT_SUCCESS
+        return syncing, StatusCodes.CONTROLLER_OK
 
     def __TraktUserAuthorized(self):
         if (len(self.traktConfig['accessToken']) == 64):

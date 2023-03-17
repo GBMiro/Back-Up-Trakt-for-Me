@@ -17,7 +17,7 @@ REFRESH_TOKEN = "refresh_token"
 
 # BUTTONS #
 
-BACKUP = "backup_button"
+BACKUP = "backup"
 SHOW_HISTORY = "all"
 SHOW_EPISODES = "episodes"
 SHOW_MOVIES = "movies"
