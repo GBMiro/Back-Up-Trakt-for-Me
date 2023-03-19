@@ -45,13 +45,13 @@ def UpdateHistoryTable(sender):
 
     if (statusCode == StatusCodes.CONTROLLER_OK):
         for play in data:
-            type = play[DB.TYPE]
-            id = play[DB.ID]
-            season = "-" if type == 'movie' else play[DB.SEASON]
-            episodeNumber = "-" if type == 'movie' else play[DB.NUMBER]
-            episodeTitle = "-" if type == 'movie' else play[DB.EPISODE_TITLE]
-            name = play[DB.TITLE]
-            date = play[DB.DATE]
+            type = play[DB.TYPE_COLUMN]
+            id = play[DB.ID_COLUMN]
+            season = "-" if type == 'movie' else play[DB.SEASON_COLUMN]
+            episodeNumber = "-" if type == 'movie' else play[DB.NUMBER_COLUMN]
+            episodeTitle = "-" if type == 'movie' else play[DB.EPISODE_TITLE_COLUMN]
+            name = play[DB.TITLE_COLUMN]
+            date = play[DB.DATE_COLUMN]
             
             with GUI.table_row(parent=UI.HISTORY_TABLE):
                 GUI.add_text(id)

@@ -1,6 +1,7 @@
 import sqlite3
 import json
 import Utils.StatusCodes as StatusCodes
+import Utils.Database as DB
 from Utils.Logger import Logger
 from datetime import datetime
 from dateutil import tz
@@ -15,7 +16,7 @@ class DatabaseManager():
         self.connection = ""
         self.cursor = ""
         self.OpenDatabase()
-        self.__CreateTables()
+        self.__CheckTables()
         self.CloseDatabase()
 
     def OpenDatabase(self):
@@ -43,56 +44,32 @@ class DatabaseManager():
         finally:
             return statusCode
 
-        
+    def __Get(self, query):
+        statusCode = StatusCodes.DATABASE_OK
+        try:
+            self.cursor.execute(query)
+            data = self.cursor.fetchall()
+        except sqlite3.Error as err:
+            self.logger.ShowMessage("An error occurred: {}".format(err))
+            data = None
+            statusCode = StatusCodes.DATABASE_ERROR
+        finally:
+            return data, statusCode
 
     def GetHistory(self):
         self.logger.ShowMessage("Selecting all plays")
-        statusCode = StatusCodes.DATABASE_OK
-        try:
-            self.cursor.execute("""SELECT type, play_ID, show_title as "title", episode_title, season, number, watched_at_local
-                                FROM episodes
-                                UNION
-                                SELECT type, play_ID, title, NULL, NULL, NULL, watched_at_local
-                                FROM movies
-                                ORDER BY watched_at_local DESC""")
-            data = self.cursor.fetchall()
-        except sqlite3.Error as err:
-            self.logger.ShowMessage("An error occurred: {}".format(err))
-            data = None
-            statusCode = StatusCodes.DATABASE_ERROR
-        finally:
-            return data, statusCode
-
+        data, statusCode = self.__Get(DB.HISTORY)
+        return data, statusCode
     
     def GetMovies(self):
         self.logger.ShowMessage("Selecting movie plays")
-        statusCode = StatusCodes.DATABASE_OK
-        try:
-            self.cursor.execute("""SELECT type, play_ID, title, NULL, NULL, NULL, watched_at_local
-                                FROM movies
-                                ORDER BY watched_at_local DESC""")
-            data = self.cursor.fetchall()
-        except sqlite3.Error as err:
-            self.logger.ShowMessage("An error occurred: {}".format(err))
-            data = None
-            statusCode = StatusCodes.DATABASE_ERROR
-        finally:
-            return data, statusCode
-
+        data, statusCode = self.__Get(DB.MOVIES)
+        return data, statusCode
+        
     def GetEpisodes(self):
         self.logger.ShowMessage("Selecting episode plays")
-        statusCode = StatusCodes.DATABASE_OK
-        try:
-            self.cursor.execute("""SELECT type, play_ID, show_title as "title", episode_title, season, number, watched_at_local
-                            FROM episodes
-                            ORDER BY watched_at_local DESC""")
-            data = self.cursor.fetchall()
-        except sqlite3.Error as err:
-            self.logger.ShowMessage("An error occurred: {}".format(err))
-            data = None
-            statusCode = StatusCodes.DATABASE_ERROR
-        finally:
-            return data, statusCode
+        data, statusCode = self.__Get(DB.EPISODES)
+        return data, statusCode
 
     def __InsertEpisode(self, play):
         playID = play['id']
@@ -108,7 +85,7 @@ class DatabaseManager():
         showYear = play['show']['year']
         showIDs = play['show']['ids']
 
-        self.cursor.execute("INSERT INTO episodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (play_ID) DO NOTHING",
+        self.cursor.execute(DB.INSERT_EPISODE,
                             (playID, watchedAt, watchedAtLocal, type, season, number,
                             episodeTitle, json.dumps(episodeIDs), runtime, showTitle, showYear, json.dumps(showIDs)))
         
@@ -126,7 +103,7 @@ class DatabaseManager():
         runtime = play['movie']['runtime']
         movieIDs = play['movie']['ids']
 
-        self.cursor.execute("INSERT INTO movies VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (play_ID) DO NOTHING",
+        self.cursor.execute(DB.INSERT_MOVIE,
                             (playID, watchedAt, watchedAtLocal, type, title, year, runtime, json.dumps(movieIDs)))
         
         message = "Processing: {} ({}) {}".format(title, year, watchedAtLocal)
@@ -139,55 +116,23 @@ class DatabaseManager():
         watchedAt = watchedAt.astimezone(tz.tzlocal()).strftime(formatTo)
         return watchedAt
 
-    def __CreateTables(self):
+    def __CheckTables(self):
         try:
             if (not self.__TableCreated("episodes")):
-                self.__CreateEpisodesTable()
+                self.__CreateTable(DB.EPISODES_TABLE)
+                self.logger.ShowMessage("Episodes table created")
             if (not self.__TableCreated("movies")):
-                self.__CreateMoviesTable()
+                self.__CreateTable(DB.MOVIES_TABLE)
+                self.logger.ShowMessage("Movies table created")
         except sqlite3.Error as err:
             self.logger.ShowMessage("Error creating tables. {}".format(err))
 
+    def __CreateTable(self, query):
+        self.cursor.execute(query)
+
     def __TableCreated(self, name):
-        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name = ?", (name,))
+        self.cursor.execute(DB.CHECK_TABLE, (name,))
         return True if len(self.cursor.fetchall()) > 0 else False
-
-    def __CreateEpisodesTable(self):
-        self.cursor.execute("""
-            CREATE TABLE "episodes" (
-            "play_ID" INTEGER NOT NULL,
-            "watched_at" TEXT NOT NULL,
-            "watched_at_local" TEXT NOT NULL,
-            "type" TEXT NOT NULL,
-            "season" INTEGER NOT NULL,
-            "number" INTEGER NOT NULL, 
-            "episode_title" TEXT,
-            "episode_IDs" TEXT NOT NULL,
-            "runtime" INTEGER NOT NULL,
-            "show_title" TEXT NOT NULL,
-            "show_year" INTEGER NOT NULL,
-            "show_IDs" TEXT NOT NULL,
-            PRIMARY KEY("play_ID"))
-        """)
-
-        self.logger.ShowMessage("Episodes table created")
-
-
-    def __CreateMoviesTable(self):
-        self.cursor.execute("""
-            CREATE TABLE "movies" (
-            "play_ID" INTEGER NOT NULL,
-            "watched_at" TEXT NOT NULL,
-            "watched_at_local" TEXT NOT NULL,
-            "type" TEXT NOT NULL,
-            "title" TEXT NOT NULL,
-            "year" INTEGER NOT NULL,
-            "runtime" INTEGER NOT NULL,
-            "movie_ids" TEXT NOT NULL,
-            PRIMARY KEY("play_ID"))
-        """)
-
-        self.logger.ShowMessage("Movies table created")
 
     def __SaveChanges(self):
         self.connection.commit()

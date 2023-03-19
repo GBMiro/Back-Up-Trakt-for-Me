@@ -16,7 +16,7 @@ class Logger:
 
     def ShowMessage(self, message):
         if (self.logToUI):
-            GUI.add_text("[" + self.tag + "] " + message, parent=UI.CONSOLE_WINDOW)
+            GUI.add_text("[{}] {}".format(self.tag, message), parent=UI.CONSOLE_WINDOW)
             self.ScrollToBottom()
         else:
             print (message)
