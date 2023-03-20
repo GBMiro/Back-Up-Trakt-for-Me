@@ -25,23 +25,33 @@ DATE_COLUMN = "watched_at_local"
 TYPE_COLUMN = 'type'
 RUNTIME_COLUMN = "runtime"
 
+# SETTINGS COLUMNS
 
-# QUERYS
+CLIENT_ID_COLUMN = "client_id"
+CLIENT_SECRET_COLUMN = "client_secret"
+ACCESS_TOKEN_COLUMN = "access_token"
+REFRESH_TOKEN_COLUMN = "refresh_token"
 
-HISTORY = """SELECT type, play_ID, show_title as "title", episode_title, season, number, watched_at_local
+
+# GET DATA QUERYS
+
+GET_HISTORY = """SELECT type, play_ID, show_title as "title", episode_title, season, number, watched_at_local
                 FROM episodes
                 UNION
                 SELECT type, play_ID, title, NULL, NULL, NULL, watched_at_local
                 FROM movies
                 ORDER BY watched_at_local DESC"""
 
-EPISODES = """SELECT type, play_ID, show_title as "title", episode_title, season, number, watched_at_local
+GET_EPISODES = """SELECT type, play_ID, show_title as "title", episode_title, season, number, watched_at_local
                 FROM episodes
                 ORDER BY watched_at_local DESC"""
 
-MOVIES = """SELECT *
+GET_MOVIES = """SELECT *
             FROM movies
             ORDER BY watched_at_local DESC"""
+
+GET_TRAKT_SETTINGS = """SELECT * FROM trakt_settings"""
+
 
 
 # INSERT QUERYS
@@ -50,10 +60,25 @@ INSERT_EPISODE = """INSERT INTO episodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CON
 
 INSERT_MOVIE = """INSERT INTO movies VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (play_ID) DO NOTHING"""
 
+INSERT_SETTINGS = """INSERT INTO trakt_settings VALUES (?,?,?,?) ON CONFLICT (client_id, client_secret) DO NOTHING"""
+
+# UPDATE QUERYS
+
+UPDATE_SETTINGS = """UPDATE trakt_settings
+                        SET client_id = ?, client_secret = ?, access_token = ?, refresh_token = ?"""
 
 # TABLES CHECK & CREATION
 
 CHECK_TABLE = """SELECT name FROM sqlite_master WHERE type='table' AND name = ?"""
+
+SETTINGS_TABLE = """
+            CREATE TABLE "trakt_settings" (
+            "client_id" TEXT,
+            "client_secret" TEXT,
+            "access_token" TEXT,
+            "refresh_token" TEXT,
+            PRIMARY KEY("client_id", "client_secret"))
+        """
 
 EPISODES_TABLE = """
             CREATE TABLE "episodes" (

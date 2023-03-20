@@ -15,9 +15,7 @@ class DatabaseManager():
         self.logger = Logger(showLog, "DATABASE")
         self.connection = ""
         self.cursor = ""
-        self.OpenDatabase()
         self.__CheckTables()
-        self.CloseDatabase()
 
     def OpenDatabase(self):
         self.connection = sqlite3.connect(".\\Database\\trakt_history.db")
@@ -44,10 +42,10 @@ class DatabaseManager():
         finally:
             return statusCode
 
-    def __Get(self, query):
+    def __ExecuteQuery(self, query, params=()):
         statusCode = StatusCodes.DATABASE_OK
         try:
-            self.cursor.execute(query)
+            self.cursor.execute(query, params)
             data = self.cursor.fetchall()
         except sqlite3.Error as err:
             self.logger.ShowMessage("An error occurred: {}".format(err))
@@ -57,19 +55,43 @@ class DatabaseManager():
             return data, statusCode
 
     def GetHistory(self):
+        self.OpenDatabase()
         self.logger.ShowMessage("Selecting all plays")
-        data, statusCode = self.__Get(DB.HISTORY)
+        data, statusCode = self.__ExecuteQuery(DB.GET_HISTORY)
+        self.CloseDatabase()
         return data, statusCode
     
     def GetMovies(self):
+        self.OpenDatabase()
         self.logger.ShowMessage("Selecting movie plays")
-        data, statusCode = self.__Get(DB.MOVIES)
+        data, statusCode = self.__ExecuteQuery(DB.GET_MOVIES)
+        self.CloseDatabase()
         return data, statusCode
         
     def GetEpisodes(self):
+        self.OpenDatabase()
         self.logger.ShowMessage("Selecting episode plays")
-        data, statusCode = self.__Get(DB.EPISODES)
+        data, statusCode = self.__ExecuteQuery(DB.GET_EPISODES)
+        self.CloseDatabase()
         return data, statusCode
+    
+    def GetTraktSettings(self):
+        self.OpenDatabase()
+        self.logger.ShowMessage("Loading trakt settings...")
+        data, statusCode = self.__ExecuteQuery(DB.GET_TRAKT_SETTINGS)
+        self.CloseDatabase()    
+        return data, statusCode
+    
+    def SaveTraktSettings(self, clientID, clientSecret, accessToken, refreshToken):
+        self.logger.ShowMessage("Saving trakt settings...")
+        self.OpenDatabase()
+        data, statusCode = self.__ExecuteQuery(DB.GET_TRAKT_SETTINGS)
+        
+        if (statusCode == StatusCodes.DATABASE_OK):  
+            query = DB.UPDATE_SETTINGS if (len(data) != 0) else DB.INSERT_SETTINGS
+            data, statusCode = self.__ExecuteQuery(query, (clientID, clientSecret, accessToken, refreshToken))
+        self.CloseDatabase()
+        return statusCode
 
     def __InsertEpisode(self, play):
         playID = play['id']
@@ -117,22 +139,29 @@ class DatabaseManager():
         return watchedAt
 
     def __CheckTables(self):
-        try:
-            if (not self.__TableCreated("episodes")):
-                self.__CreateTable(DB.EPISODES_TABLE)
-                self.logger.ShowMessage("Episodes table created")
-            if (not self.__TableCreated("movies")):
-                self.__CreateTable(DB.MOVIES_TABLE)
-                self.logger.ShowMessage("Movies table created")
-        except sqlite3.Error as err:
-            self.logger.ShowMessage("Error creating tables. {}".format(err))
+        self.logger.ShowMessage("Checking tables...")
+        self.OpenDatabase()
+        self.__CreateTableIfNotExists(DB.EPISODES_TABLE, ("episodes"))
+        self.__CreateTableIfNotExists(DB.MOVIES_TABLE, ("movies"))
+        self.__CreateTableIfNotExists(DB.SETTINGS_TABLE, ("trakt_settings"))
+        self.CloseDatabase()
 
-    def __CreateTable(self, query):
-        self.cursor.execute(query)
-
-    def __TableCreated(self, name):
-        self.cursor.execute(DB.CHECK_TABLE, (name,))
-        return True if len(self.cursor.fetchall()) > 0 else False
-
+    def __CreateTableIfNotExists(self, query, name):
+        statusCode = StatusCodes.DATABASE_OK
+        data, statusCode = self.__ExecuteQuery(DB.CHECK_TABLE, (name,))
+        if (statusCode == StatusCodes.DATABASE_OK):
+            createTable = False if (len(data) > 0) else True
+            if (createTable):
+                data, statusCode = self.__ExecuteQuery(query)
+                if (statusCode != StatusCodes.DATABASE_OK):
+                    message = "An error occurred creating {} table. Check previous logs".format(name)
+                else:
+                    message = "{} table created".format(name)
+            else:
+                message = "{} table found".format(name)
+        else:
+            message = "An error occurred checking {} table. Check previous logs".format(name)
+        self.logger.ShowMessage(message)
+                    
     def __SaveChanges(self):
         self.connection.commit()

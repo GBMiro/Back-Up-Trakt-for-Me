@@ -1,6 +1,7 @@
 from Trakt.TraktAPI import TraktAPI
 from Database.DatabaseManager import DatabaseManager
 from Utils.Logger import Logger
+import Utils.Database as DB
 import Utils.UI as UI
 import Utils.StatusCodes as StatusCodes
 import json
@@ -10,9 +11,9 @@ class AppController():
     
     def __init__(self, showLog=True):
         self.logger = Logger(showLog, "CONTROLLER")
-        self.traktConfig = self.__LoadTraktConfig()
-        self.trakt = TraktAPI(showLog)
         self.database = DatabaseManager(showLog)
+        self.traktConfig = self.__LoadConfig()
+        self.trakt = TraktAPI(showLog)
 
 
     def AuthorizeTraktUser(self):
@@ -31,7 +32,7 @@ class AppController():
     
     def BackupWatchedHistory(self):
         if (not self.__TraktUserAuthorized()):
-            message = "User is not authorized (missing access token). Error: {} {}".format(StatusCodes.TRAKT_UNAUTHORIZED, StatusCodes.statusMessages[StatusCodes.TRAKT_UNAUTHORIZED])
+            message = "User is not authorized (missing trakt settings). Error: {} {}".format(StatusCodes.TRAKT_UNAUTHORIZED, StatusCodes.statusMessages[StatusCodes.TRAKT_UNAUTHORIZED])
             self.logger.ShowMessage(message)
             return StatusCodes.TRAKT_UNAUTHORIZED
         
@@ -80,7 +81,6 @@ class AppController():
 
     def GetHistoryData(self, sender):
         self.logger.ShowMessage("Querying database for {} plays...".format(sender))
-        self.database.OpenDatabase()
         plays = []
 
         if (sender == UI.SHOW_HISTORY):
@@ -89,7 +89,7 @@ class AppController():
             plays, statusCode = self.database.GetEpisodes()
         else:
             plays, statusCode = self.database.GetMovies()
-        self.database.CloseDatabase()
+
         if (statusCode != StatusCodes.DATABASE_OK):
             self.logger.ShowMessage("Request finished with an error. Check previous logs")
         else:
@@ -115,31 +115,35 @@ class AppController():
             return True
         else:
             return False
+        
+    def __LoadConfig(self):
+        data, statusCode = self.database.GetTraktSettings()
 
-    def __LoadTraktConfig(self):
-        try:
-            with open('settings.json', 'r') as configFile:
-                data = json.load(configFile)
+        traktConfig = {'clientID' : "", 'clientSecret' : "", 'accessToken' : "", 'refreshToken' : ""}
+
+        if (statusCode == StatusCodes.DATABASE_OK):
+            if (len(data) != 0):
                 traktConfig = {
-                    'clientID' : data['clientID'],
-                    'clientSecret' : data['clientSecret'],
-                    'accessToken' : data['accessToken'],
-                    'refreshToken' : data['refreshToken']
+                    'clientID' : data[0][DB.CLIENT_ID_COLUMN],
+                    'clientSecret' : data[0][DB.CLIENT_SECRET_COLUMN],
+                    'accessToken' : data[0][DB.ACCESS_TOKEN_COLUMN],
+                    'refreshToken' : data[0][DB.REFRESH_TOKEN_COLUMN]
                 }
-            message = "Trakt config loaded from settings.json"
-        except Exception as err:
-            message = "An error occurred when loading the settings file. {}".format(err)
-            traktConfig = {'clientID' : "", 'clientSecret' : "", 'accessToken' : "", 'refreshToken' : ""}
-        finally:
-            self.logger.ShowMessage(message)
-            return traktConfig
+                message = "Trakt settings loaded from database"
+            else:
+                message = "No trakt settings found"
+        else:
+            message = "An error occurred when loading trakt settings. Check previous logs"
+        
+        self.logger.ShowMessage(message)
+
+        return traktConfig
 
     def __SaveConfig(self):
-        try:
-            with open('settings.json', 'w') as configFile:
-                json.dump(self.traktConfig, configFile)
-            message = "Trakt config saved to settings.json"
-        except Exception as err:
-            message = "An error occurred when saving the settings file. {}".format(err)
-        finally:
-            self.logger.ShowMessage(message)
+        statusCode = self.database.SaveTraktSettings(self.traktConfig['clientID'], self.traktConfig['clientSecret'], self.traktConfig['accessToken'], self.traktConfig['refreshToken'])
+        if (statusCode == StatusCodes.DATABASE_OK):
+            message = "Settings saved to database"
+        else:
+            message = "Could not save settings to database. Check previous logs"
+
+        self.logger.ShowMessage(message)
