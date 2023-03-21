@@ -1,13 +1,8 @@
 import sqlite3
-import json
 import Utils.StatusCodes as StatusCodes
 import Utils.Database as DB
 from Utils.Logger import Logger
-from datetime import datetime
-from dateutil import tz
 
-formatFrom="%Y-%m-%dT%H:%M:%S.000Z"
-formatTo="%Y-%m-%d %H:%M:%S"
 
 class DatabaseManager():
 
@@ -24,23 +19,29 @@ class DatabaseManager():
 
 
     def CloseDatabase(self):
-        self.__SaveChanges()
+        self.connection.commit()
         self.cursor.close()
         self.connection.close()
 
-    def AddPlay(self, play):
+    def AddPlays(self, params, type):
         statusCode = StatusCodes.DATABASE_OK
-        try:
-            if (play['type'] == 'episode'):
-                self.__InsertEpisode(play)
+        query = DB.INSERT_EPISODE if (type == 'episode') else DB.INSERT_MOVIE
+        totalInserted = 0
+        
+        # Indexes match table column order
+        movieMessage = "Play: {4} ({5}) {3}"
+        episodeMessage = "Play: {9} - {4}x{5} {6} {2}"
+
+        for play in params:
+            data, statusCode = self.__ExecuteQuery(query, play)
+            message = movieMessage.format(*play) if (query == DB.INSERT_MOVIE) else episodeMessage.format(*play)
+            if (statusCode == StatusCodes.DATABASE_OK):
+                self.logger.ShowMessage(message)
+                totalInserted += 1
             else:
-                self.__InsertMovie(play)
-        except sqlite3.Error as err:
-            statusCode = StatusCodes.DATABASE_ERROR
-            message = "Error inserting play into database. {}".format(err)
-            self.logger.ShowMessage(message)
-        finally:
-            return statusCode
+                self.logger.ShowMessage("Failed to add play. {}. Check previous logs.".format(message))
+        
+        return totalInserted
 
     def __ExecuteQuery(self, query, params=()):
         statusCode = StatusCodes.DATABASE_OK
@@ -93,51 +94,6 @@ class DatabaseManager():
         self.CloseDatabase()
         return statusCode
 
-    def __InsertEpisode(self, play):
-        playID = play['id']
-        type = play['type']
-        watchedAt = play['watched_at']
-        watchedAtLocal = self.__ConvertToLocalTime(watchedAt)
-        season = play['episode']['season']
-        number = play['episode']['number']
-        episodeTitle = play['episode']['title']
-        runtime = play['episode']['runtime']
-        episodeIDs = play['episode']['ids']
-        showTitle = play['show']['title']
-        showYear = play['show']['year']
-        showIDs = play['show']['ids']
-
-        self.cursor.execute(DB.INSERT_EPISODE,
-                            (playID, watchedAt, watchedAtLocal, type, season, number,
-                            episodeTitle, json.dumps(episodeIDs), runtime, showTitle, showYear, json.dumps(showIDs)))
-        
-        message = "Processing: {} - {}x{} {} {}".format(showTitle, season, number, episodeTitle, watchedAtLocal)
-        self.logger.ShowMessage(message)
-
-
-    def __InsertMovie(self, play):
-        playID = play['id']
-        type = play['type']
-        watchedAt = play['watched_at']
-        watchedAtLocal = self.__ConvertToLocalTime(watchedAt)
-        title = play['movie']['title']
-        year = play['movie']['year']
-        runtime = play['movie']['runtime']
-        movieIDs = play['movie']['ids']
-
-        self.cursor.execute(DB.INSERT_MOVIE,
-                            (playID, watchedAt, watchedAtLocal, type, title, year, runtime, json.dumps(movieIDs)))
-        
-        message = "Processing: {} ({}) {}".format(title, year, watchedAtLocal)
-        self.logger.ShowMessage(message)
-
-
-    def __ConvertToLocalTime(self, watchedAt):
-        watchedAt = datetime.strptime(watchedAt, formatFrom)
-        watchedAt = watchedAt.replace(tzinfo=tz.tzutc())
-        watchedAt = watchedAt.astimezone(tz.tzlocal()).strftime(formatTo)
-        return watchedAt
-
     def __CheckTables(self):
         self.logger.ShowMessage("Checking tables...")
         self.OpenDatabase()
@@ -162,6 +118,3 @@ class DatabaseManager():
         else:
             message = "An error occurred checking {} table. Check previous logs".format(name)
         self.logger.ShowMessage(message)
-                    
-    def __SaveChanges(self):
-        self.connection.commit()

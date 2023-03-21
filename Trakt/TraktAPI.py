@@ -70,6 +70,7 @@ class TraktAPI:
         data = None
         message = ""
         statusCode = ""
+        syncing = False
 
         try:
             response = requests.get(self.baseURL + '/sync/history?extended=full&page={}&limit={}'.format(page, self.TRAKT_SYNC_LIMIT), headers=historyHeader)
@@ -78,6 +79,7 @@ class TraktAPI:
             if (statusCode == StatusCodes.TRAKT_SUCCESS):
                 message = "Downloaded history page {}".format(page)
                 data = response.json()
+                syncing = False if (page >= int(response.headers['X-Pagination-Page-Count'])) else True
             else:
                 message = "Could not download page. Code: {} {}".format(statusCode, StatusCodes.statusMessages[statusCode])
 
@@ -87,7 +89,7 @@ class TraktAPI:
             
         finally:
             self.logger.ShowMessage(message)
-            return statusCode, data
+            return data, statusCode, syncing
 
     def GetSyncLimit(self):
         return self.TRAKT_SYNC_LIMIT

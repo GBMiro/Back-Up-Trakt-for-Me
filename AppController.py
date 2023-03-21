@@ -4,8 +4,12 @@ from Utils.Logger import Logger
 import Utils.Database as DB
 import Utils.UI as UI
 import Utils.StatusCodes as StatusCodes
+from datetime import datetime
+from dateutil import tz
 import json
 
+formatFrom="%Y-%m-%dT%H:%M:%S.000Z"
+formatTo="%Y-%m-%d %H:%M:%S"
 
 class AppController():
     
@@ -40,24 +44,25 @@ class AppController():
         page = 1
         syncing = True
         statusCode = StatusCodes.CONTROLLER_OK
-        totalPlays = 0
+        playsFound = 0
+        playsProcessed = 0
         self.database.OpenDatabase()
         while (syncing and statusCode == StatusCodes.CONTROLLER_OK):
-            statusCode, data = self.trakt.GetHistoryPage(page, self.traktConfig['clientID'], self.traktConfig['accessToken'])
+            data, statusCode, syncing = self.trakt.GetHistoryPage(page, self.traktConfig['clientID'], self.traktConfig['accessToken'])
             if (statusCode == StatusCodes.TRAKT_SUCCESS):
                 message = "Processing plays from page {}".format(page)
                 self.logger.ShowMessage(message)
-                syncing, statusCode = self.__ProcessTraktPlays(data)
-                
-                if (statusCode == StatusCodes.CONTROLLER_OK):
-                    totalPlays += len(data)
-                    page += 1
+                processed = self.__ProcessTraktPlays(data)
+                playsProcessed += processed
+                playsFound += len(data)
+                page += 1
+                statusCode = StatusCodes.CONTROLLER_OK
         
         self.database.CloseDatabase()
-        if (statusCode != StatusCodes.CONTROLLER_OK):
-            message = "Backup history finished with an error. Pages processed: {}. Plays stored: {}. Check previous logs for more info".format(page - 1, totalPlays)
+        if (statusCode != StatusCodes.CONTROLLER_OK or playsProcessed != playsFound):
+            message = "Backup history finished with errors. Pages processed: {}. Plays found: {} Plays successfully stored: {}. Check previous logs for more info".format(page - 1, playsFound, playsProcessed)
         else:
-            message = "Backup history finished. Pages processed: {}. Total plays found: {}".format(page - 1, totalPlays)
+            message = "Backup history finished. Pages processed: {}. Plays found: {} Plays successfully stored: {}".format(page - 1, playsFound, playsProcessed)
         self.logger.ShowMessage(message)
 
         return statusCode
@@ -99,16 +104,50 @@ class AppController():
     
     def __ProcessTraktPlays(self, plays):
 
-        statusCode = None
+        episodes = []
+        movies = []
 
         for play in plays:
-            statusCode = self.database.AddPlay(play)
-            if (statusCode != StatusCodes.DATABASE_OK):
-                return False, statusCode
+            playID = play['id']
+            type = play['type']
+            watchedAt = play['watched_at']
+            watchedAtLocal = self.__ConvertToLocalTime(watchedAt)
 
-        syncing = True if len(plays) == self.trakt.GetSyncLimit() else False
+            if (type == 'episode'):
+                season = play['episode']['season']
+                number = play['episode']['number']
+                episodeTitle = play['episode']['title']
+                runtime = play['episode']['runtime']
+                episodeIDs = play['episode']['ids']
+                showTitle = play['show']['title']
+                showYear = play['show']['year']
+                showIDs = play['show']['ids']
 
-        return syncing, StatusCodes.CONTROLLER_OK
+                # Order matches the episodes table columns
+                episodes.append([playID, watchedAt, watchedAtLocal, type, season, number, episodeTitle,
+                                json.dumps(episodeIDs), runtime, showTitle, showYear, json.dumps(showIDs)])
+            else:
+                title = play['movie']['title']
+                year = play['movie']['year']
+                runtime = play['movie']['runtime']
+                movieIDs = play['movie']['ids']
+
+                # Order matches movies table columns
+                movies.append([playID, watchedAt, watchedAtLocal, type, title, year, runtime, json.dumps(movieIDs)])
+        
+        totalInserted = 0
+        self.logger.ShowMessage("Processing episodes...")
+        totalInserted += self.database.AddPlays(episodes, 'episode')
+        self.logger.ShowMessage("Processing movies...")
+        totalInserted += self.database.AddPlays(movies, 'movie')
+
+        return totalInserted
+    
+    def __ConvertToLocalTime(self, watchedAt):
+        watchedAt = datetime.strptime(watchedAt, formatFrom)
+        watchedAt = watchedAt.replace(tzinfo=tz.tzutc())
+        watchedAt = watchedAt.astimezone(tz.tzlocal()).strftime(formatTo)
+        return watchedAt
 
     def __TraktUserAuthorized(self):
         if (len(self.traktConfig['accessToken']) == 64):
