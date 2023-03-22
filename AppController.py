@@ -34,39 +34,37 @@ class AppController():
 
         return StatusCodes.TRAKT_SUCCESS
     
-    def BackupWatchedHistory(self):
+    def BackupHistory(self):
         if (not self.__TraktUserAuthorized()):
             message = "User is not authorized (missing trakt settings). Error: {} {}".format(StatusCodes.TRAKT_UNAUTHORIZED, StatusCodes.statusMessages[StatusCodes.TRAKT_UNAUTHORIZED])
             self.logger.ShowMessage(message)
             return StatusCodes.TRAKT_UNAUTHORIZED
         
         self.logger.ShowMessage("Starting backup process...")
-        page = 1
-        syncing = True
-        statusCode = StatusCodes.CONTROLLER_OK
+
         playsFound = 0
         playsProcessed = 0
-        self.database.OpenDatabase()
-        while (syncing and statusCode == StatusCodes.CONTROLLER_OK):
-            data, statusCode, syncing = self.trakt.GetHistoryPage(page, self.traktConfig['clientID'], self.traktConfig['accessToken'])
-            if (statusCode == StatusCodes.TRAKT_SUCCESS):
-                message = "Processing plays from page {}".format(page)
-                self.logger.ShowMessage(message)
-                processed = self.__ProcessTraktPlays(data)
-                playsProcessed += processed
-                playsFound += len(data)
-                page += 1
-                statusCode = StatusCodes.CONTROLLER_OK
-        
-        self.database.CloseDatabase()
-        if (statusCode != StatusCodes.CONTROLLER_OK or playsProcessed != playsFound):
-            message = "Backup history finished with errors. Pages processed: {}. Plays found: {} Plays successfully stored: {}. Check previous logs for more info".format(page - 1, playsFound, playsProcessed)
-        else:
-            message = "Backup history finished. Pages processed: {}. Plays found: {} Plays successfully stored: {}".format(page - 1, playsFound, playsProcessed)
-        self.logger.ShowMessage(message)
 
+        plays, statusCode = self.trakt.GetHistory(self.traktConfig['clientID'], self.traktConfig['accessToken'])
+
+        if (statusCode == StatusCodes.TRAKT_SUCCESS):
+            playsFound = len(plays)
+            playsProcessed = self.__ProcessTraktPlays(plays)
+
+        if (playsProcessed != playsFound):
+            message = "Backup history finished with errors. Plays found: {}. Plays successfully stored: {}. Check previous logs for more info".format(playsFound, playsProcessed)
+        else:
+            message = "Backup history finished. Plays found: {} Plays successfully stored: {}".format(playsFound, playsProcessed)
+            statusCode = StatusCodes.CONTROLLER_OK
+        
+        self.logger.ShowMessage(message)
         return statusCode
     
+    def BackupRatings(self):
+        data = self.trakt.GetRatings(self.traktConfig['clientID'], self.traktConfig['accessToken'])
+        for rate in data:
+            self.logger.ShowMessage("{}".format(rate))
+
     def GetAccessToken(self):
         return self.traktConfig['accessToken']
     
@@ -107,6 +105,7 @@ class AppController():
         episodes = []
         movies = []
 
+        # Parse json objects
         for play in plays:
             playID = play['id']
             type = play['type']

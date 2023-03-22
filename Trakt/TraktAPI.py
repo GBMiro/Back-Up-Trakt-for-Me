@@ -63,33 +63,40 @@ class TraktAPI:
             return {'accessToken' : None, 'refresh_token' : None, 'code' : StatusCodes.REQUESTS_ERROR}
 
         
-    def GetHistoryPage(self, page, clientID, accessToken):
-        
-        historyHeader = self.__BuildRequiredHeader(clientID, accessToken)
 
-        data = None
+    def GetHistory(self, clientID, accessToken):
+        self.logger.ShowMessage("Downloading history...")
+        headers = self.__BuildRequiredHeader(clientID, accessToken)
+        plays = []
         message = ""
-        statusCode = ""
-        syncing = False
+        page = 1
+        statusCode = StatusCodes.TRAKT_SUCCESS
+        syncing = True
 
-        try:
-            response = requests.get(self.baseURL + '/sync/history?extended=full&page={}&limit={}'.format(page, self.TRAKT_SYNC_LIMIT), headers=historyHeader)
-            statusCode = response.status_code
+        while (syncing and statusCode == StatusCodes.TRAKT_SUCCESS):
+
+            url = '/sync/history?extended=full&page={}&limit={}'.format(page, self.TRAKT_SYNC_LIMIT)   
+            response, statusCode = self.__GetURL(url, headers)
 
             if (statusCode == StatusCodes.TRAKT_SUCCESS):
-                message = "Downloaded history page {}".format(page)
-                data = response.json()
+                # Check if we have history pages left to download
                 syncing = False if (page >= int(response.headers['X-Pagination-Page-Count'])) else True
+                data = response.json()
+                plays += data
+                page += 1
             else:
-                message = "Could not download page. Code: {} {}".format(statusCode, StatusCodes.statusMessages[statusCode])
+                message = "Could not download history. An error occurred: {} {}.".format(statusCode, StatusCodes.statusMessages[statusCode])
 
-        except requests.exceptions.RequestException as err:
-            message = "An error occurred in requests module: {}".format(err)
-            statusCode = StatusCodes.REQUESTS_ERROR
-            
-        finally:
-            self.logger.ShowMessage(message)
-            return data, statusCode, syncing
+        if (statusCode == StatusCodes.TRAKT_SUCCESS):
+            message = "History downloaded"
+
+        self.logger.ShowMessage(message)
+        return plays, statusCode
+        
+    def GetRatings(self, clientID, accessToken):
+        header = self.__BuildRequiredHeader(clientID, accessToken)
+        response, statusCode = self.__GetURL('/sync/ratings?limit={}'.format(1000000), headers=header)
+        return response.json()
 
     def GetSyncLimit(self):
         return self.TRAKT_SYNC_LIMIT
@@ -102,3 +109,16 @@ class TraktAPI:
             'Authorization': "Bearer " + accessToken
         }   
         return header
+    
+    def __GetURL(self, url, headers):
+        response = None
+        try:
+            response = requests.get(self.baseURL + url, headers=headers)
+            message = "Downloading {} ...".format(self.baseURL + url)
+            statusCode = response.status_code
+        except requests.exceptions.RequestException as err:
+            message = "An error occurred in requests module: {}".format(err)
+            statusCode = StatusCodes.REQUESTS_ERROR
+        finally:
+            self.logger.ShowMessage(message)
+            return response, statusCode

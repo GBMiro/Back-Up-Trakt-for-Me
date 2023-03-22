@@ -21,8 +21,11 @@ def RefreshUserToken(sender, app_data, user_data):
 # Application functions
 
 def BackupHistory():
-    controller.BackupWatchedHistory()
+    controller.BackupHistory()
     UpdateHistoryTable(UI.SHOW_HISTORY)
+
+def TestGetter():
+    controller.BackupRatings()
 
 def ClearConsole():
     logger.Clear()
@@ -91,7 +94,10 @@ def BuildUserInterface():
         with GUI.tab_bar():
             with GUI.tab(tag=UI.BACKUP_TAB, label="Backup"):
                 GUI.add_text()
-                GUI.add_button(tag=UI.BACKUP, label="Backup history", callback=BackupHistory, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
+                with GUI.group(horizontal=True):
+                    GUI.add_button(tag=UI.BACKUP, label="Backup history", callback=BackupHistory, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
+                    GUI.add_button(tag="test", label="Test getter", callback=TestGetter, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
+                
                 GUI.add_text()
                 GUI.add_separator()
                 with GUI.group(horizontal=True, horizontal_spacing=50):

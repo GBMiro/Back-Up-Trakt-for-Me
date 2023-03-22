@@ -24,6 +24,7 @@ class DatabaseManager():
         self.connection.close()
 
     def AddPlays(self, params, type):
+        self.OpenDatabase()
         statusCode = StatusCodes.DATABASE_OK
         query = DB.INSERT_EPISODE if (type == 'episode') else DB.INSERT_MOVIE
         totalInserted = 0
@@ -40,7 +41,7 @@ class DatabaseManager():
                 totalInserted += 1
             else:
                 self.logger.ShowMessage("Failed to add play. {}. Check previous logs.".format(message))
-        
+        self.CloseDatabase()
         return totalInserted
 
     def __ExecuteQuery(self, query, params=()):
