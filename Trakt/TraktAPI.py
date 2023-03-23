@@ -1,4 +1,5 @@
 from Utils.Logger import Logger
+import Utils.UI as UI
 import Utils.StatusCodes as StatusCodes
 import requests
 import time
@@ -24,8 +25,7 @@ class TraktAPI:
 
             if (response.status_code == StatusCodes.TRAKT_SUCCESS):
                 authorizationData = response.json()
-                message = "Go to {} in your browser and input the following code: {}".format(authorizationData['verification_url'], authorizationData['user_code'])
-                self.logger.ShowMessage(message)
+                self.logger.ShowMessage("Go to {} in your browser and input the following code: {}".format(authorizationData['verification_url'], authorizationData['user_code']))
 
                 tokenData = {
                     "code" : authorizationData['device_code'],
@@ -42,24 +42,20 @@ class TraktAPI:
                     time.sleep(authorizationData['interval'])
                     pullTime += authorizationData['interval']
                     tokenResponse = requests.post(url, json=tokenData, headers=authorizeHeader)
-                    message = "Response code: {}".format(tokenResponse.status_code)
-                    self.logger.ShowMessage(message)
+                    self.logger.ShowMessage("Response code: {}".format(tokenResponse.status_code))
 
                 if (tokenResponse.status_code != StatusCodes.TRAKT_SUCCESS) : 
-                    message = "Could not authorize user. Code: {} {}".format(response.status_code, StatusCodes.statusMessages[response.status_code])
-                    self.logger.ShowMessage(message)
+                    self.logger.ShowMessage("Could not authorize user. Code: {} {}".format(response.status_code, StatusCodes.statusMessages[response.status_code]), UI.ERROR_LOG)
                     return {'accessToken' : None, 'refresh_token' : None, 'code' : tokenResponse.status_code}
                 else:
                     tokenData = tokenResponse.json()
                     return {'accessToken' : tokenData['access_token'], 'refresh_token' : tokenData['refresh_token'], 'code' : tokenResponse.status_code}
             else:
-                message = "Could not authorize user. Code: {} {}".format(response.status_code, StatusCodes.statusMessages[response.status_code])
-                self.logger.ShowMessage(message)
+                self.logger.ShowMessage("Could not authorize user. Code: {} {}".format(response.status_code, StatusCodes.statusMessages[response.status_code]), UI.ERROR_LOG)
                 return {'accessToken' : None, 'refresh_token' : None, 'code' : response.status_code}
             
         except requests.exceptions.RequestException as err:
-            message = "An error occurred in requests module: {}".format(err)
-            self.logger.ShowMessage(message)
+            self.logger.ShowMessage("An error occurred in requests module: {}".format(err), UI.ERROR_LOG)
             return {'accessToken' : None, 'refresh_token' : None, 'code' : StatusCodes.REQUESTS_ERROR}
 
         
@@ -94,19 +90,17 @@ class TraktAPI:
         response = None
         try:
             response = requests.get(self.baseURL + url, headers=headers)
-            message = "Downloading {} ...".format(self.baseURL + url)
+            self.logger.ShowMessage("Downloading {} ...".format(self.baseURL + url))
             statusCode = response.status_code
         except requests.exceptions.RequestException as err:
-            message = "An error occurred in requests module: {}".format(err)
+            self.logger.ShowMessage("An error occurred in requests module: {}".format(err), UI.ERROR_LOG)
             statusCode = StatusCodes.REQUESTS_ERROR
         finally:
-            self.logger.ShowMessage(message)
             return response, statusCode
         
     def __GetURLWithPagination(self, url, headers, type):
         page = 1
         data = []
-        message = ''
         statusCode = StatusCodes.TRAKT_SUCCESS
         syncing = True
 
@@ -121,10 +115,9 @@ class TraktAPI:
                 data += responseData
                 page += 1
             else:
-                message = "Could not download {}. An error occurred: {} {}.".format(type, statusCode, StatusCodes.statusMessages[statusCode])
+                self.logger.ShowMessage("Could not download {}. An error occurred: {} {}.".format(type, statusCode, StatusCodes.statusMessages[statusCode]), UI.ERROR_LOG)
 
         if (statusCode == StatusCodes.TRAKT_SUCCESS):
-            message = "{} downloaded".format(type)
+            self.logger.ShowMessage("{} downloaded".format(type), UI.SUCCESS_LOG)
 
-        self.logger.ShowMessage(message)
         return data, statusCode

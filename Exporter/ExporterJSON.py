@@ -1,4 +1,5 @@
 from Utils.Logger import Logger
+import Utils.UI as UI
 import Utils.StatusCodes as StatusCodes
 import Utils.Exporting as Folders
 from datetime import datetime
@@ -30,7 +31,7 @@ class ExporterJSON:
                 os.mkdir(folder)
                 self.logger.ShowMessage("{} folder created".format(folder))
         except OSError as err:
-            self.logger.ShowMessage("An error occurred creating folder {}".format(err))
+            self.logger.ShowMessage("An error occurred creating folder {}".format(err), UI.ERROR_LOG)
 
     def ExportData(self, data, folder, filename):
         filePath = self.path + '\\{}\\{}.json'.format(folder, filename)
@@ -38,10 +39,9 @@ class ExporterJSON:
         try:
             with open(filePath, 'w', encoding='utf-8') as file:
                 json.dump(data, file, ensure_ascii=False, indent=4)
-            message = "{} file created".format(filePath)  
+            self.logger.ShowMessage("{} file created".format(filePath))
         except Exception as err:
-            message = "An error occured creating the file ({}). {}".format(filePath, err)
+            self.logger.ShowMessage("An error occured creating the file ({}). {}".format(filePath, err), UI.ERROR_LOG)
             statusCode = StatusCodes.EXPORTER_ERROR
         finally:
-            self.logger.ShowMessage(message)
             return statusCode

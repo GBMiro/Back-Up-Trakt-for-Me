@@ -14,9 +14,9 @@ class Logger:
     def GetStatus(self):
         return self.logToUI
 
-    def ShowMessage(self, message):
+    def ShowMessage(self, message, textColor = UI.NORMAL_LOG):
         if (self.logToUI):
-            GUI.add_text("[{}] {}".format(self.tag, message), parent=UI.CONSOLE_WINDOW)
+            GUI.add_text("[{}] {}".format(self.tag, message), color=textColor, parent=UI.CONSOLE_WINDOW)
             self.ScrollToBottom()
         else:
             print (message)

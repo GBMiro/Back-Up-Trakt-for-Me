@@ -32,8 +32,7 @@ class AppController():
                 self.__SaveConfig()
             return result['code']
         else:
-            message = "User already authorized"
-            self.logger.ShowMessage(message)
+            self.logger.ShowMessage("User already authorized", UI.SUCCESS_LOG)
 
         return StatusCodes.TRAKT_SUCCESS
     
@@ -42,11 +41,11 @@ class AppController():
         self.exporter.CreateExportFolders()
         self.__BackupHistory()
         self.__BackupRatings()
+        self.logger.ShowMessage("Backup finished. Check any red logs for errors")
     
     def __BackupHistory(self):
         if (not self.__TraktUserAuthorized()):
-            message = "User is not authorized (missing trakt settings). Error: {} {}".format(StatusCodes.TRAKT_UNAUTHORIZED, StatusCodes.statusMessages[StatusCodes.TRAKT_UNAUTHORIZED])
-            self.logger.ShowMessage(message)
+            self.logger.ShowMessage("User is not authorized (missing trakt settings). Error: {} {}".format(StatusCodes.TRAKT_UNAUTHORIZED, StatusCodes.statusMessages[StatusCodes.TRAKT_UNAUTHORIZED]), UI.ERROR_LOG)
             return StatusCodes.TRAKT_UNAUTHORIZED
         
         self.logger.ShowMessage("Starting history backup...")
@@ -62,23 +61,19 @@ class AppController():
             playsProcessed = self.__ProcessTraktPlays(plays)
 
         if (playsProcessed != playsFound):
-            message = "History backup to database finished with errors. Plays found: {}. Plays successfully stored: {}. Check previous logs for more info".format(playsFound, playsProcessed)
+            self.logger.ShowMessage("History backup to database finished with errors. Plays found: {}. Plays successfully stored: {}. Check previous logs for more info".format(playsFound, playsProcessed), UI.ERROR_LOG)
         else:
-            message = "History backup to database finished. Plays found: {} Plays successfully stored: {}".format(playsFound, playsProcessed)
+            self.logger.ShowMessage("History backup to database finished. Plays found: {} Plays successfully stored: {}".format(playsFound, playsProcessed), UI.SUCCESS_LOG)
             statusCode = StatusCodes.CONTROLLER_OK
-
-        self.logger.ShowMessage(message)
 
         self.logger.ShowMessage("Exporting history data to json...")
 
         # Backup history data to json file
         statusCode = self.exporter.ExportData(plays, Folders.HISTORY_FOLDER, 'trakt history')
         if (statusCode != StatusCodes.EXPORTER_OK):
-            message = "Exporting history data to json file failed. Check previous logs"
+            self.logger.ShowMessage("Exporting history data to json file failed. Check previous logs", UI.ERROR_LOG)
         else:
-            message = "History data successfully exported to json file"
-
-        self.logger.ShowMessage(message)
+            self.logger.ShowMessage("History data successfully exported to json file", UI.SUCCESS_LOG)
     
     def __BackupRatings(self):
         self.logger.ShowMessage("Starting backup of ratings...")
@@ -91,7 +86,7 @@ class AppController():
         if (statusCode != StatusCodes.EXPORTER_OK):
             errors = errors + 'episodes'
 
-        statusCode = self.__BackupRatingsByType("as")
+        statusCode = self.__BackupRatingsByType("seasons")
         if (statusCode != StatusCodes.EXPORTER_OK):
             errors = errors + 'seasons'
 
@@ -100,24 +95,23 @@ class AppController():
             errors = errors + 'shows'
 
         if (len(errors) != 0):
-            self.logger.ShowMessage("Ratings backup finished with errors exporting the following types: {}. Check previous logs".format(errors), UI.ERROR_TEXT)
+            self.logger.ShowMessage("Ratings backup finished with errors. Not exported: {}. Check previous logs".format(errors), UI.ERROR_LOG)
         else:
-            self.logger.ShowMessage("Ratings backup finished")
+            self.logger.ShowMessage("Ratings backup finished", UI.SUCCESS_LOG)
 
     def __BackupRatingsByType(self, type):
         folder = Folders.RATINGS_FOLDER
         ratings, statusCode = self.trakt.GetRatings(type ,self.traktConfig['clientID'], self.traktConfig['accessToken'])
         if (statusCode == StatusCodes.TRAKT_SUCCESS):
-            self.logger.ShowMessage("Exporting data to json..")
+            self.logger.ShowMessage("Exporting data to json...")
             statusCode = self.exporter.ExportData(ratings, folder, type)
             if (statusCode != StatusCodes.EXPORTER_OK):
-                message = "Error exporting {} ratings. Check previous logs".format(type)
+                self.logger.ShowMessage("Error exporting {} ratings to json file. Check previous logs".format(type), UI.ERROR_LOG)
             else:
-                message = "{} ratings backup finished with no errors".format(type)
+                self.logger.ShowMessage("{} ratings successfully exported to json file".format(type), UI.SUCCESS_LOG)
         else:
-            message = "Error getting {} ratings from trakt. Check previous logs".format(type)
-            
-        self.logger.ShowMessage(message)
+            self.logger.ShowMessage("Error getting {} ratings from trakt. Check previous logs".format(type), UI.ERROR_LOG)
+
         return statusCode
 
     def GetAccessToken(self):
@@ -149,7 +143,7 @@ class AppController():
             plays, statusCode = self.database.GetMovies()
 
         if (statusCode != StatusCodes.DATABASE_OK):
-            self.logger.ShowMessage("Request finished with an error. Check previous logs")
+            self.logger.ShowMessage("Request finished with an error. Check previous logs", UI.ERROR_LOG)
         else:
             statusCode = StatusCodes.CONTROLLER_OK
 
@@ -222,21 +216,17 @@ class AppController():
                     'accessToken' : data[0][DB.ACCESS_TOKEN_COLUMN],
                     'refreshToken' : data[0][DB.REFRESH_TOKEN_COLUMN]
                 }
-                message = "Trakt settings loaded from database"
+                self.logger.ShowMessage("Trakt settings loaded from database")
             else:
-                message = "No trakt settings found"
+                self.logger.ShowMessage("No trakt settings found")
         else:
-            message = "An error occurred when loading trakt settings. Check previous logs"
-        
-        self.logger.ShowMessage(message)
+            self.logger.ShowMessage("An error occurred when loading trakt settings. Check previous logs", UI.ERROR_LOG)
 
         return traktConfig
 
     def __SaveConfig(self):
         statusCode = self.database.SaveTraktSettings(self.traktConfig['clientID'], self.traktConfig['clientSecret'], self.traktConfig['accessToken'], self.traktConfig['refreshToken'])
         if (statusCode == StatusCodes.DATABASE_OK):
-            message = "Settings saved to database"
+            self.logger.ShowMessage("Settings saved to database", UI.SUCCESS_LOG)
         else:
-            message = "Could not save settings to database. Check previous logs"
-
-        self.logger.ShowMessage(message)
+            self.logger.ShowMessage("Could not save settings to database. Check previous logs", UI.ERROR_LOG)

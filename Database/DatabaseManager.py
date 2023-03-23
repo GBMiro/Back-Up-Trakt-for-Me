@@ -1,4 +1,5 @@
 import sqlite3
+import Utils.UI as UI
 import Utils.StatusCodes as StatusCodes
 import Utils.Database as DB
 from Utils.Logger import Logger
@@ -42,7 +43,7 @@ class DatabaseManager():
                 #self.logger.ShowMessage(message)
                 totalInserted += 1
             else:
-                self.logger.ShowMessage("Failed to add play. {}. Check previous logs.".format(message))
+                self.logger.ShowMessage("Failed to add play. {}. Check previous logs.".format(message), UI.ERROR_LOG)
         self.CloseDatabase()
         return totalInserted
 
@@ -52,7 +53,7 @@ class DatabaseManager():
             self.cursor.execute(query, params)
             data = self.cursor.fetchall()
         except sqlite3.Error as err:
-            self.logger.ShowMessage("An error occurred: {}".format(err))
+            self.logger.ShowMessage("An error occurred: {}".format(err), UI.ERROR_LOG)
             data = None
             statusCode = StatusCodes.DATABASE_ERROR
         finally:
@@ -113,11 +114,10 @@ class DatabaseManager():
             if (createTable):
                 data, statusCode = self.__ExecuteQuery(query)
                 if (statusCode != StatusCodes.DATABASE_OK):
-                    message = "An error occurred creating {} table. Check previous logs".format(name)
+                    self.logger.ShowMessage("An error occurred creating {} table. Check previous logs".format(name), UI.ERROR_LOG)
                 else:
-                    message = "{} table created".format(name)
+                    self.logger.ShowMessage("{} table created".format(name))
             else:
-                message = "{} table found".format(name)
+                self.logger.ShowMessage("{} table found".format(name))
         else:
-            message = "An error occurred checking {} table. Check previous logs".format(name)
-        self.logger.ShowMessage(message)
+            self.logger.ShowMessage("An error occurred checking {} table. Check previous logs".format(name), UI.ERROR_LOG)
