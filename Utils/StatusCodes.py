@@ -34,6 +34,11 @@ CONTROLLER_OK = 20
 DATABASE_OK = 30
 DATABASE_ERROR = -30
 
+#### EXPORTER ####
+
+EXPORTER_OK = 40
+EXPORTER_ERROR = -40
+
 statusMessages = {
 
     #### TRAKT ####

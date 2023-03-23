@@ -28,6 +28,8 @@ class DatabaseManager():
         statusCode = StatusCodes.DATABASE_OK
         query = DB.INSERT_EPISODE if (type == 'episode') else DB.INSERT_MOVIE
         totalInserted = 0
+
+        self.logger.ShowMessage("Inserting/updating plays in database...")
         
         # Indexes match table column order
         movieMessage = "Play: {4} ({5}) {3}"
@@ -37,7 +39,7 @@ class DatabaseManager():
             data, statusCode = self.__ExecuteQuery(query, play)
             message = movieMessage.format(*play) if (query == DB.INSERT_MOVIE) else episodeMessage.format(*play)
             if (statusCode == StatusCodes.DATABASE_OK):
-                self.logger.ShowMessage(message)
+                #self.logger.ShowMessage(message)
                 totalInserted += 1
             else:
                 self.logger.ShowMessage("Failed to add play. {}. Check previous logs.".format(message))
@@ -58,21 +60,21 @@ class DatabaseManager():
 
     def GetHistory(self):
         self.OpenDatabase()
-        self.logger.ShowMessage("Selecting all plays")
+        self.logger.ShowMessage("Selecting all plays...")
         data, statusCode = self.__ExecuteQuery(DB.GET_HISTORY)
         self.CloseDatabase()
         return data, statusCode
     
     def GetMovies(self):
         self.OpenDatabase()
-        self.logger.ShowMessage("Selecting movie plays")
+        self.logger.ShowMessage("Selecting movie plays...")
         data, statusCode = self.__ExecuteQuery(DB.GET_MOVIES)
         self.CloseDatabase()
         return data, statusCode
         
     def GetEpisodes(self):
         self.OpenDatabase()
-        self.logger.ShowMessage("Selecting episode plays")
+        self.logger.ShowMessage("Selecting episode plays...")
         data, statusCode = self.__ExecuteQuery(DB.GET_EPISODES)
         self.CloseDatabase()
         return data, statusCode

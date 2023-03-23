@@ -1,6 +1,8 @@
 from Trakt.TraktAPI import TraktAPI
 from Database.DatabaseManager import DatabaseManager
+from Exporter.ExporterJSON import ExporterJSON
 from Utils.Logger import Logger
+import Utils.Exporting as Folders
 import Utils.Database as DB
 import Utils.UI as UI
 import Utils.StatusCodes as StatusCodes
@@ -18,6 +20,7 @@ class AppController():
         self.database = DatabaseManager(showLog)
         self.traktConfig = self.__LoadConfig()
         self.trakt = TraktAPI(showLog)
+        self.exporter = ExporterJSON(showLog)
 
 
     def AuthorizeTraktUser(self):
@@ -34,36 +37,88 @@ class AppController():
 
         return StatusCodes.TRAKT_SUCCESS
     
-    def BackupHistory(self):
+    def BackupTrakt(self):
+        self.logger.ShowMessage("Starting backup process...")
+        self.exporter.CreateExportFolders()
+        self.__BackupHistory()
+        self.__BackupRatings()
+    
+    def __BackupHistory(self):
         if (not self.__TraktUserAuthorized()):
             message = "User is not authorized (missing trakt settings). Error: {} {}".format(StatusCodes.TRAKT_UNAUTHORIZED, StatusCodes.statusMessages[StatusCodes.TRAKT_UNAUTHORIZED])
             self.logger.ShowMessage(message)
             return StatusCodes.TRAKT_UNAUTHORIZED
         
-        self.logger.ShowMessage("Starting backup process...")
+        self.logger.ShowMessage("Starting history backup...")
 
         playsFound = 0
         playsProcessed = 0
 
         plays, statusCode = self.trakt.GetHistory(self.traktConfig['clientID'], self.traktConfig['accessToken'])
 
+        # Backup history data to database
         if (statusCode == StatusCodes.TRAKT_SUCCESS):
             playsFound = len(plays)
             playsProcessed = self.__ProcessTraktPlays(plays)
 
         if (playsProcessed != playsFound):
-            message = "Backup history finished with errors. Plays found: {}. Plays successfully stored: {}. Check previous logs for more info".format(playsFound, playsProcessed)
+            message = "History backup to database finished with errors. Plays found: {}. Plays successfully stored: {}. Check previous logs for more info".format(playsFound, playsProcessed)
         else:
-            message = "Backup history finished. Plays found: {} Plays successfully stored: {}".format(playsFound, playsProcessed)
+            message = "History backup to database finished. Plays found: {} Plays successfully stored: {}".format(playsFound, playsProcessed)
             statusCode = StatusCodes.CONTROLLER_OK
-        
+
+        self.logger.ShowMessage(message)
+
+        self.logger.ShowMessage("Exporting history data to json...")
+
+        # Backup history data to json file
+        statusCode = self.exporter.ExportData(plays, Folders.HISTORY_FOLDER, 'trakt history')
+        if (statusCode != StatusCodes.EXPORTER_OK):
+            message = "Exporting history data to json file failed. Check previous logs"
+        else:
+            message = "History data successfully exported to json file"
+
+        self.logger.ShowMessage(message)
+    
+    def __BackupRatings(self):
+        self.logger.ShowMessage("Starting backup of ratings...")
+        errors = ''
+        statusCode = self.__BackupRatingsByType("movies")
+        if (statusCode != StatusCodes.EXPORTER_OK):
+            errors = errors + 'movies'
+
+        statusCode = self.__BackupRatingsByType("episodes")
+        if (statusCode != StatusCodes.EXPORTER_OK):
+            errors = errors + 'episodes'
+
+        statusCode = self.__BackupRatingsByType("as")
+        if (statusCode != StatusCodes.EXPORTER_OK):
+            errors = errors + 'seasons'
+
+        statusCode = self.__BackupRatingsByType("shows")
+        if (statusCode != StatusCodes.EXPORTER_OK):
+            errors = errors + 'shows'
+
+        if (len(errors) != 0):
+            self.logger.ShowMessage("Ratings backup finished with errors exporting the following types: {}. Check previous logs".format(errors), UI.ERROR_TEXT)
+        else:
+            self.logger.ShowMessage("Ratings backup finished")
+
+    def __BackupRatingsByType(self, type):
+        folder = Folders.RATINGS_FOLDER
+        ratings, statusCode = self.trakt.GetRatings(type ,self.traktConfig['clientID'], self.traktConfig['accessToken'])
+        if (statusCode == StatusCodes.TRAKT_SUCCESS):
+            self.logger.ShowMessage("Exporting data to json..")
+            statusCode = self.exporter.ExportData(ratings, folder, type)
+            if (statusCode != StatusCodes.EXPORTER_OK):
+                message = "Error exporting {} ratings. Check previous logs".format(type)
+            else:
+                message = "{} ratings backup finished with no errors".format(type)
+        else:
+            message = "Error getting {} ratings from trakt. Check previous logs".format(type)
+            
         self.logger.ShowMessage(message)
         return statusCode
-    
-    def BackupRatings(self):
-        data = self.trakt.GetRatings(self.traktConfig['clientID'], self.traktConfig['accessToken'])
-        for rate in data:
-            self.logger.ShowMessage("{}".format(rate))
 
     def GetAccessToken(self):
         return self.traktConfig['accessToken']

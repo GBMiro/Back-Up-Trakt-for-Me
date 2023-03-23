@@ -66,37 +66,17 @@ class TraktAPI:
 
     def GetHistory(self, clientID, accessToken):
         self.logger.ShowMessage("Downloading history...")
-        headers = self.__BuildRequiredHeader(clientID, accessToken)
-        plays = []
-        message = ""
-        page = 1
-        statusCode = StatusCodes.TRAKT_SUCCESS
-        syncing = True
-
-        while (syncing and statusCode == StatusCodes.TRAKT_SUCCESS):
-
-            url = '/sync/history?extended=full&page={}&limit={}'.format(page, self.TRAKT_SYNC_LIMIT)   
-            response, statusCode = self.__GetURL(url, headers)
-
-            if (statusCode == StatusCodes.TRAKT_SUCCESS):
-                # Check if we have history pages left to download
-                syncing = False if (page >= int(response.headers['X-Pagination-Page-Count'])) else True
-                data = response.json()
-                plays += data
-                page += 1
-            else:
-                message = "Could not download history. An error occurred: {} {}.".format(statusCode, StatusCodes.statusMessages[statusCode])
-
-        if (statusCode == StatusCodes.TRAKT_SUCCESS):
-            message = "History downloaded"
-
-        self.logger.ShowMessage(message)
+        header = self.__BuildRequiredHeader(clientID, accessToken)
+        plays, statusCode = self.__GetURLWithPagination('/sync/history?extended=full&page={}&limit={}', header, "history")
         return plays, statusCode
         
-    def GetRatings(self, clientID, accessToken):
+    def GetRatings(self, type, clientID, accessToken):
         header = self.__BuildRequiredHeader(clientID, accessToken)
-        response, statusCode = self.__GetURL('/sync/ratings?limit={}'.format(1000000), headers=header)
-        return response.json()
+        self.logger.ShowMessage("Downloading {} ratings...".format(type))
+        url = '/sync/ratings/{}'.format(type) + '?page={}&limit={}'
+        ratings, statusCode = self.__GetURLWithPagination(url, header, "{} ratings".format(type))
+
+        return ratings, statusCode
 
     def GetSyncLimit(self):
         return self.TRAKT_SYNC_LIMIT
@@ -122,3 +102,29 @@ class TraktAPI:
         finally:
             self.logger.ShowMessage(message)
             return response, statusCode
+        
+    def __GetURLWithPagination(self, url, headers, type):
+        page = 1
+        data = []
+        message = ''
+        statusCode = StatusCodes.TRAKT_SUCCESS
+        syncing = True
+
+        while (syncing and statusCode == StatusCodes.TRAKT_SUCCESS):
+            
+            response, statusCode = self.__GetURL(str(url).format(page, self.TRAKT_SYNC_LIMIT), headers)
+            
+            if (statusCode == StatusCodes.TRAKT_SUCCESS):
+                # Check if we have pages left to download
+                syncing = False if (page >= int(response.headers['X-Pagination-Page-Count'])) else True
+                responseData = response.json()
+                data += responseData
+                page += 1
+            else:
+                message = "Could not download {}. An error occurred: {} {}.".format(type, statusCode, StatusCodes.statusMessages[statusCode])
+
+        if (statusCode == StatusCodes.TRAKT_SUCCESS):
+            message = "{} downloaded".format(type)
+
+        self.logger.ShowMessage(message)
+        return data, statusCode
