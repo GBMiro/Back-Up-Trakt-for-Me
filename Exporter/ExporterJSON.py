@@ -21,9 +21,8 @@ class ExporterJSON:
         self.__CreateFolder(self.path)
         self.__CreateFolder(self.path + '\\{}'.format(Folders.RATINGS_FOLDER))
         self.__CreateFolder(self.path + '\\{}'.format(Folders.WATCHED_FOLDER))
-        self.__CreateFolder(self.path + '\\{}'.format(Folders.LISTS_FOLDER))
+        self.__CreateFolder(self.path + '\\{}'.format(Folders.WATCHLIST_FOLDER))
         self.__CreateFolder(self.path + '\\{}'.format(Folders.COLLECTION_FOLDER))
-        self.__CreateFolder(self.path + '\\{}'.format(Folders.HISTORY_FOLDER))
 
     def __CreateFolder(self, folder):
         try:

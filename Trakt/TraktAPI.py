@@ -63,6 +63,7 @@ class TraktAPI:
     def GetHistory(self, clientID, accessToken):
         self.logger.ShowMessage("Downloading history...")
         header = self.__BuildRequiredHeader(clientID, accessToken)
+        # This Trakt API call has optional pagination. Call __GetURLWithPagination
         plays, statusCode = self.__GetURLWithPagination('/sync/history?extended=full&page={}&limit={}', header, "history")
         return plays, statusCode
         
@@ -70,9 +71,37 @@ class TraktAPI:
         header = self.__BuildRequiredHeader(clientID, accessToken)
         self.logger.ShowMessage("Downloading {} ratings...".format(type))
         url = '/sync/ratings/{}'.format(type) + '?page={}&limit={}'
+        # This Trakt API call has optional pagination. Call __GetURLWithPagination
         ratings, statusCode = self.__GetURLWithPagination(url, header, "{} ratings".format(type))
 
         return ratings, statusCode
+
+    def GetCollection(self, type, clientID, accessToken):
+        header = self.__BuildRequiredHeader(clientID, accessToken)
+        self.logger.ShowMessage("Downloading {} collection...".format(type))
+        url = '/sync/collection/{}?extended=metadata'.format(type)
+        # This trakt API call does not have pagination. Call __GetURLWithNoPagination directly
+        collection, statusCode = self.__GetURLWithNoPagination(url, header, "{} collection".format(type))
+
+        return collection, statusCode
+    
+    def GetWatched(self, type, clientID, accessToken):
+        header = self.__BuildRequiredHeader(clientID, accessToken)
+        self.logger.ShowMessage("Downloading watched {}...".format(type))
+        url = '/sync/watched/{}'.format(type)
+        # This trakt API call does not have pagination. Call __GetURLWithNoPagination directly
+        watched, statusCode = self.__GetURLWithNoPagination(url, header, "{} watched".format(type))
+
+        return watched, statusCode
+    
+    def GetWatchlist(self, type, clientID, accessToken):
+        header = self.__BuildRequiredHeader(clientID, accessToken)
+        self.logger.ShowMessage("Downloading {} watchlist...".format(type))
+        url = '/sync/watchlist/{}'.format(type) + '?page={}&limit={}'
+        # This Trakt API call has optional pagination. Call __GetURLWithPagination
+        watchlist, statusCode = self.__GetURLWithPagination(url, header,"{} watchlist".format(type))
+
+        return watchlist, statusCode
 
     def GetSyncLimit(self):
         return self.TRAKT_SYNC_LIMIT
@@ -90,7 +119,7 @@ class TraktAPI:
         response = None
         try:
             response = requests.get(self.baseURL + url, headers=headers)
-            self.logger.ShowMessage("Downloading {} ...".format(self.baseURL + url))
+            self.logger.ShowMessage("Downloading {}...".format(self.baseURL + url))
             statusCode = response.status_code
         except requests.exceptions.RequestException as err:
             self.logger.ShowMessage("An error occurred in requests module: {}".format(err), UI.ERROR_LOG)
@@ -119,5 +148,17 @@ class TraktAPI:
 
         if (statusCode == StatusCodes.TRAKT_SUCCESS):
             self.logger.ShowMessage("{} downloaded".format(type), UI.SUCCESS_LOG)
+
+        return data, statusCode
+    
+    def __GetURLWithNoPagination(self, url, headers, type):
+        response, statusCode = self.__GetURL(url, headers)
+        data = []
+
+        if (statusCode == StatusCodes.TRAKT_SUCCESS):
+            data = response.json()
+            self.logger.ShowMessage("{} downloaded".format(type), UI.SUCCESS_LOG)
+        else:
+            self.logger.ShowMessage("Could not download {}. An error occurred: {} {}.".format(type, statusCode, StatusCodes.statusMessages[statusCode]), UI.ERROR_LOG)
 
         return data, statusCode
