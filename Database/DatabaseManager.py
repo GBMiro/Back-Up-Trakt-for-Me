@@ -87,14 +87,14 @@ class DatabaseManager():
         self.CloseDatabase()    
         return data, statusCode
     
-    def SaveSettings(self, clientID, clientSecret, accessToken, refreshToken, user, backupFolder):
+    def SaveSettings(self, clientID, clientSecret, accessToken, refreshToken, backupFolder):
         self.logger.ShowMessage("Saving settings...")
         self.OpenDatabase()
         data, statusCode = self.__ExecuteQuery(DB.GET_SETTINGS)
         
         if (statusCode == StatusCodes.DATABASE_OK):  
             query = DB.UPDATE_SETTINGS if (len(data) != 0) else DB.INSERT_SETTINGS
-            data, statusCode = self.__ExecuteQuery(query, (clientID, clientSecret, accessToken, refreshToken, user, backupFolder))
+            data, statusCode = self.__ExecuteQuery(query, (clientID, clientSecret, accessToken, refreshToken, backupFolder))
         self.CloseDatabase()
         return statusCode
 

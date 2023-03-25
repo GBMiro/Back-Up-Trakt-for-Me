@@ -30,9 +30,8 @@ def SelectBackupFolder(sender, app_data):
     controller.SetBackupFolder(app_data['file_path_name'])
     UpdateUISettings()
 
-def SelectBAckupFolderCancelled():
+def SelectBackupFolderCancelled():
     logger.ShowMessage("Folder was not changed")
-
 
 def ClearConsole():
     logger.Clear()
@@ -139,7 +138,7 @@ def BuildUserInterface():
                 GUI.add_text("Backup folder")
                 GUI.add_text(tag=UI.BACKUP_FOLDER, default_value='.')
                 GUI.add_button(tag=UI.SELECT_FOLDER, label="Select backup folder", callback=lambda: GUI.show_item(UI.FOLDER_DIALOG))
-                GUI.add_file_dialog(tag=UI.FOLDER_DIALOG, label="Select backup folder...", directory_selector=True, show=False, callback=SelectBackupFolder, cancel_callback=SelectBAckupFolderCancelled, width=700, height=400)
+                GUI.add_file_dialog(tag=UI.FOLDER_DIALOG, label="Select backup folder...", directory_selector=True, show=False, callback=SelectBackupFolder, cancel_callback=SelectBackupFolderCancelled, width=700, height=400)
 
                 with GUI.group(horizontal=True):
                     GUI.add_button(tag=UI.AUTHORIZE, label="Authorize User", callback=AuthorizeUser)

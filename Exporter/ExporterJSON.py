@@ -24,6 +24,7 @@ class ExporterJSON:
         self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.WATCHED_FOLDER))
         self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.WATCHLIST_FOLDER))
         self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.COLLECTION_FOLDER))
+        self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.LISTS_FOLDER))
 
     def __CreateFolder(self, folder):
         try:

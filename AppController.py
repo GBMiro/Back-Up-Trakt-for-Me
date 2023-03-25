@@ -45,6 +45,7 @@ class AppController():
         self.__BackupCollection()
         self.__BackupWatched()
         self.__BackupWatchlist()
+        self.__BackupLists()
         self.logger.ShowMessage("Backup finished. Check any red logs for errors")
     
     def __BackupHistory(self):
@@ -125,6 +126,47 @@ class AppController():
             self.logger.ShowMessage("Watched backup finished with errors. Check previous logs", UI.ERROR_LOG)
         else:
             self.logger.ShowMessage("Watched data successfully exported to json file", UI.SUCCESS_LOG)
+
+    def __BackupLists(self):
+        self.logger.ShowMessage("Starting backup of lists...")
+        clientID = self.settings[Settings.CLIENT_ID]
+        accessToken = self.settings[Settings.ACCESS_TOKEN]
+        lists, statusCode = self.trakt.GetLists(clientID, accessToken)
+
+        if (statusCode == StatusCodes.TRAKT_SUCCESS):
+            statusCode = self.exporter.ExportData(lists, Folders.LISTS_FOLDER, "lists")
+
+            if (statusCode == StatusCodes.EXPORTER_OK):
+                self.logger.ShowMessage("Lists (summary) successfully exported to json file", UI.SUCCESS_LOG)
+            else:
+                self.logger.ShowMessage("Error exporting your lists (summary) to json file. Check previous logs", UI.ERROR_LOG)
+                
+            self.logger.ShowMessage("Processing details of all lists...")
+
+            error = False
+
+            for list in lists:
+                listName = list['name']
+                listID = list['ids']['trakt']
+                listDetails, statusCode = self.trakt.GetListDetails(listID, listName, clientID, accessToken)
+                
+                if (statusCode == StatusCodes.TRAKT_SUCCESS):
+                    statusCode = self.exporter.ExportData(listDetails, Folders.LISTS_FOLDER, "{}-list".format(listName))
+
+                    if (statusCode == StatusCodes.EXPORTER_OK):
+                        self.logger.ShowMessage("{} list successfully exported to json file".format(listName), UI.SUCCESS_LOG)
+                    else:
+                       self.logger.ShowMessage("Error exporting {} list to json file. Check previous logs".format(listName), UI.ERROR_LOG)
+                       error = True
+
+            if (error):
+                self.logger.ShowMessage("Backup of lists finished with errors. Check previous logs", UI.ERROR_LOG)     
+            else:
+                self.logger.ShowMessage("Lists data successfully exported to json file", UI.SUCCESS_LOG)
+        else:
+            self.logger.ShowMessage("Error getting lists from trakt.", UI.ERROR_LOG)
+            self.logger.ShowMessage("Backup of lists finished with errors. Check previous logs", UI.ERROR_LOG)            
+        
     
     def __BackupTraktItemsByType(self, type, folder):
         clientID = self.settings[Settings.CLIENT_ID]
@@ -261,7 +303,7 @@ class AppController():
     def __LoadConfig(self):
         data, statusCode = self.database.GetSettings()
 
-        settings = {Settings.CLIENT_ID : "", Settings.CLIENT_SECRET : "", Settings.ACCESS_TOKEN : "", Settings.REFRESH_TOKEN : "", Settings.USER : "", Settings.BACKUP_FOLDER : ""}
+        settings = {Settings.CLIENT_ID : "", Settings.CLIENT_SECRET : "", Settings.ACCESS_TOKEN : "", Settings.REFRESH_TOKEN : "", Settings.BACKUP_FOLDER : ""}
 
         if (statusCode == StatusCodes.DATABASE_OK):
             if (len(data) != 0):
@@ -270,7 +312,6 @@ class AppController():
                     'clientSecret' : data[0][DB.CLIENT_SECRET_COLUMN],
                     'accessToken' : data[0][DB.ACCESS_TOKEN_COLUMN],
                     'refreshToken' : data[0][DB.REFRESH_TOKEN_COLUMN],
-                    'user' : data[0][DB.USER_COLUMN],
                     'backupFolder' : data[0][DB.BACKUP_FOLDER_COLUMN]
                 }
                 self.logger.ShowMessage("Settings loaded from database")
@@ -282,7 +323,7 @@ class AppController():
         return settings
 
     def __SaveConfig(self):
-        statusCode = self.database.SaveSettings(self.settings[Settings.CLIENT_ID], self.settings[Settings.CLIENT_SECRET], self.settings[Settings.ACCESS_TOKEN], self.settings[Settings.REFRESH_TOKEN], self.settings[Settings.USER], self.settings[Settings.BACKUP_FOLDER])
+        statusCode = self.database.SaveSettings(self.settings[Settings.CLIENT_ID], self.settings[Settings.CLIENT_SECRET], self.settings[Settings.ACCESS_TOKEN], self.settings[Settings.REFRESH_TOKEN], self.settings[Settings.BACKUP_FOLDER])
         if (statusCode == StatusCodes.DATABASE_OK):
             self.logger.ShowMessage("Settings saved to database", UI.SUCCESS_LOG)
         else:

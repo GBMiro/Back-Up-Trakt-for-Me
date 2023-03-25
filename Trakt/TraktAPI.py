@@ -98,6 +98,22 @@ class TraktAPI:
         watchlist, statusCode = self.__GetURLWithPagination(url, header,"{} watchlist".format(type))
 
         return watchlist, statusCode
+    
+    def GetLists(self, clientID, accessToken):
+        header = self.__BuildRequiredHeader(clientID, accessToken)
+        self.logger.ShowMessage("Downloading your lists...")
+        url = '/users/me/lists'
+        lists, statusCode = self.__GetURLWithNoPagination(url, header, "your lists")
+
+        return lists, statusCode
+    
+    def GetListDetails(self, listID, listName, clientID, accessToken):
+        header = self.__BuildRequiredHeader(clientID, accessToken)
+        self.logger.ShowMessage("Downloading {} list details...".format(listName))
+        url = '/users/me/lists/{}/items'.format(listID)
+        listDetail, statusCode = self.__GetURLWithNoPagination(url, header, "{} list".format(listName))
+
+        return listDetail, statusCode
 
     def GetSyncLimit(self):
         return self.TRAKT_SYNC_LIMIT

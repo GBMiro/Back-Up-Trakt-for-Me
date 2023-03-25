@@ -31,7 +31,6 @@ CLIENT_ID_COLUMN = "client_id"
 CLIENT_SECRET_COLUMN = "client_secret"
 ACCESS_TOKEN_COLUMN = "access_token"
 REFRESH_TOKEN_COLUMN = "refresh_token"
-USER_COLUMN = "user"
 BACKUP_FOLDER_COLUMN = "backup_folder"
 
 
@@ -67,7 +66,7 @@ INSERT_SETTINGS = """INSERT INTO settings VALUES (?,?,?,?,?,?) ON CONFLICT (clie
 # UPDATE QUERYS
 
 UPDATE_SETTINGS = """UPDATE settings
-                        SET client_id = ?, client_secret = ?, access_token = ?, refresh_token = ?, user = ?, backup_folder = ?"""
+                        SET client_id = ?, client_secret = ?, access_token = ?, refresh_token = ?, backup_folder = ?"""
 
 # TABLES CHECK & CREATION
 
@@ -79,7 +78,6 @@ SETTINGS_TABLE = """
             "client_secret" TEXT,
             "access_token" TEXT,
             "refresh_token" TEXT,
-            "user" TEXT,
             "backup_folder" TEXT,
             PRIMARY KEY("client_id", "client_secret"))
         """
