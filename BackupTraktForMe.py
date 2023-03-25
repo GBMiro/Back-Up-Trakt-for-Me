@@ -13,11 +13,11 @@ def AuthorizeUser(sender, app_data, user_data):
     secret = GUI.get_value(UI.CLIENT_SECRET)
     controller.SetTraktConfig(id, secret)
     controller.AuthorizeTraktUser()
-    UpdateUITraktSettings()
+    UpdateUISettings()
 
 def RefreshUserToken(sender, app_data, user_data):
     controller.RefreshTraktToken()
-    UpdateUITraktSettings()
+    UpdateUISettings()
 
 # Application functions
 
@@ -25,17 +25,27 @@ def BackupTrakt():
     controller.BackupTrakt()
     UpdateHistoryTable(UI.SHOW_HISTORY)
 
+def SelectBackupFolder(sender, app_data):
+    logger.ShowMessage(app_data)
+    controller.SetBackupFolder(app_data['file_path_name'])
+    UpdateUISettings()
+
+def SelectBAckupFolderCancelled():
+    logger.ShowMessage("Folder was not changed")
+
+
 def ClearConsole():
     logger.Clear()
 
 def ScrollDown():
     logger.ScrollToBottom()
 
-def UpdateUITraktSettings():
+def UpdateUISettings():
     GUI.set_value(UI.CLIENT_ID, controller.GetClientID())
     GUI.set_value(UI.CLIENT_SECRET, controller.GetClientSecret())
     GUI.set_value(UI.ACCES_TOKEN, controller.GetAccessToken())
     GUI.set_value(UI.REFRESH_TOKEN, controller.GetRefreshToken())
+    GUI.set_value(UI.BACKUP_FOLDER, controller.GetBackupFolder())
 
 
 def UpdateHistoryTable(sender):
@@ -113,19 +123,23 @@ def BuildUserInterface():
                 
                     AddColumnsToTable(UI.SHOW_HISTORY)
 
-            with GUI.tab(label="Trakt API Settings"):
+            with GUI.tab(label="Settings"):
                 GUI.add_text("Client ID", show_label=True)
                 GUI.add_input_text(tag=UI.CLIENT_ID, no_spaces=True, default_value="Your client ID")
                 GUI.add_separator()
                 GUI.add_text("Client Secret", show_label=True)
                 GUI.add_input_text(tag=UI.CLIENT_SECRET, no_spaces=True, default_value="Your client secret")
                 GUI.add_separator()
-                GUI.add_text("Access Token", show_label=True)
+                GUI.add_text("Access Token")
                 GUI.add_text(tag=UI.ACCES_TOKEN, default_value="Your access token")
                 GUI.add_separator()
                 GUI.add_text("Refresh Token", show_label=True)
                 GUI.add_text(tag=UI.REFRESH_TOKEN, default_value="Your refresh token")
-                GUI.add_text()
+                GUI.add_separator()
+                GUI.add_text("Backup folder")
+                GUI.add_text(tag=UI.BACKUP_FOLDER, default_value='.')
+                GUI.add_button(tag=UI.SELECT_FOLDER, label="Select backup folder", callback=lambda: GUI.show_item(UI.FOLDER_DIALOG))
+                GUI.add_file_dialog(tag=UI.FOLDER_DIALOG, label="Select backup folder...", directory_selector=True, show=False, callback=SelectBackupFolder, cancel_callback=SelectBAckupFolderCancelled, width=700, height=400)
 
                 with GUI.group(horizontal=True):
                     GUI.add_button(tag=UI.AUTHORIZE, label="Authorize User", callback=AuthorizeUser)
@@ -156,7 +170,7 @@ if (useUI):
     logger = Logger(useUI, "UI")
     controller = AppController(useUI)
     
-    UpdateUITraktSettings()
+    UpdateUISettings()
     UpdateHistoryTable(UI.SHOW_HISTORY)
 
     GUI.setup_dearpygui()

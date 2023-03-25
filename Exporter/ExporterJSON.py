@@ -8,21 +8,22 @@ import json
 
 class ExporterJSON:
 
-    def __init__(self, showLog):
+    def __init__(self, showLog, path):
         self.logger = Logger(showLog, "EXPORTER")
-        self.path = ''
+        self.path = path
+        self.backupFolder = ''
     
     def CreateExportFolders(self):
         self.logger.ShowMessage("Creating backup folders...")
 
         date = datetime.now().strftime("%Y%m%d %H.%M.%S")
-        self.path = '.\\{}'.format(date)
+        self.backupFolder = '.\\{}'.format(date) if (self.path is None) else self.path + '\\{}'.format(date)
 
-        self.__CreateFolder(self.path)
-        self.__CreateFolder(self.path + '\\{}'.format(Folders.RATINGS_FOLDER))
-        self.__CreateFolder(self.path + '\\{}'.format(Folders.WATCHED_FOLDER))
-        self.__CreateFolder(self.path + '\\{}'.format(Folders.WATCHLIST_FOLDER))
-        self.__CreateFolder(self.path + '\\{}'.format(Folders.COLLECTION_FOLDER))
+        self.__CreateFolder(self.backupFolder)
+        self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.RATINGS_FOLDER))
+        self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.WATCHED_FOLDER))
+        self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.WATCHLIST_FOLDER))
+        self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.COLLECTION_FOLDER))
 
     def __CreateFolder(self, folder):
         try:
@@ -33,7 +34,7 @@ class ExporterJSON:
             self.logger.ShowMessage("An error occurred creating folder {}".format(err), UI.ERROR_LOG)
 
     def ExportData(self, data, folder, filename):
-        filePath = self.path + '\\{}\\{}.json'.format(folder, filename)
+        filePath = self.backupFolder + '\\{}\\{}.json'.format(folder, filename)
         statusCode = StatusCodes.EXPORTER_OK
         try:
             with open(filePath, 'w', encoding='utf-8') as file:
@@ -44,3 +45,6 @@ class ExporterJSON:
             statusCode = StatusCodes.EXPORTER_ERROR
         finally:
             return statusCode
+        
+    def SetBackupFolder(self, folder):
+        self.path = folder

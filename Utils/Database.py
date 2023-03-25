@@ -31,6 +31,8 @@ CLIENT_ID_COLUMN = "client_id"
 CLIENT_SECRET_COLUMN = "client_secret"
 ACCESS_TOKEN_COLUMN = "access_token"
 REFRESH_TOKEN_COLUMN = "refresh_token"
+USER_COLUMN = "user"
+BACKUP_FOLDER_COLUMN = "backup_folder"
 
 
 # GET DATA QUERYS
@@ -50,7 +52,7 @@ GET_MOVIES = """SELECT *
             FROM movies
             ORDER BY watched_at_local DESC"""
 
-GET_TRAKT_SETTINGS = """SELECT * FROM trakt_settings"""
+GET_SETTINGS = """SELECT * FROM settings"""
 
 
 
@@ -60,23 +62,25 @@ INSERT_EPISODE = """INSERT INTO episodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CON
 
 INSERT_MOVIE = """INSERT INTO movies VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (play_ID) DO NOTHING"""
 
-INSERT_SETTINGS = """INSERT INTO trakt_settings VALUES (?,?,?,?) ON CONFLICT (client_id, client_secret) DO NOTHING"""
+INSERT_SETTINGS = """INSERT INTO settings VALUES (?,?,?,?,?,?) ON CONFLICT (client_id, client_secret) DO NOTHING"""
 
 # UPDATE QUERYS
 
-UPDATE_SETTINGS = """UPDATE trakt_settings
-                        SET client_id = ?, client_secret = ?, access_token = ?, refresh_token = ?"""
+UPDATE_SETTINGS = """UPDATE settings
+                        SET client_id = ?, client_secret = ?, access_token = ?, refresh_token = ?, user = ?, backup_folder = ?"""
 
 # TABLES CHECK & CREATION
 
 CHECK_TABLE = """SELECT name FROM sqlite_master WHERE type='table' AND name = ?"""
 
 SETTINGS_TABLE = """
-            CREATE TABLE "trakt_settings" (
+            CREATE TABLE "settings" (
             "client_id" TEXT,
             "client_secret" TEXT,
             "access_token" TEXT,
             "refresh_token" TEXT,
+            "user" TEXT,
+            "backup_folder" TEXT,
             PRIMARY KEY("client_id", "client_secret"))
         """
 

@@ -5,6 +5,7 @@ from Utils.Logger import Logger
 import Utils.Exporting as Folders
 import Utils.Database as DB
 import Utils.UI as UI
+import Utils.Settings as Settings
 import Utils.StatusCodes as StatusCodes
 from datetime import datetime
 from dateutil import tz
@@ -18,17 +19,17 @@ class AppController():
     def __init__(self, showLog=True):
         self.logger = Logger(showLog, "CONTROLLER")
         self.database = DatabaseManager(showLog)
-        self.traktConfig = self.__LoadConfig()
+        self.settings = self.__LoadConfig()
         self.trakt = TraktAPI(showLog)
-        self.exporter = ExporterJSON(showLog)
+        self.exporter = ExporterJSON(showLog, self.settings[Settings.BACKUP_FOLDER])
 
 
     def AuthorizeTraktUser(self):
         if not self.__TraktUserAuthorized():
-            result = self.trakt.AuthorizeUser(self.traktConfig['clientID'], self.traktConfig['clientSecret'])
+            result = self.trakt.AuthorizeUser(self.settings[Settings.CLIENT_ID], self.settings[Settings.CLIENT_SECRET])
             if (result['code'] == StatusCodes.TRAKT_SUCCESS):
-                self.traktConfig['accessToken'] = result['accessToken']
-                self.traktConfig['refreshToken'] = result['refreshToken']
+                self.settings[Settings.ACCESS_TOKEN] = result[Settings.ACCESS_TOKEN]
+                self.settings[Settings.REFRESH_TOKEN] = result[Settings.REFRESH_TOKEN]
                 self.__SaveConfig()
             return result['code']
         else:
@@ -56,7 +57,7 @@ class AppController():
         playsFound = 0
         playsProcessed = 0
 
-        plays, statusCode = self.trakt.GetHistory(self.traktConfig['clientID'], self.traktConfig['accessToken'])
+        plays, statusCode = self.trakt.GetHistory(self.settings[Settings.CLIENT_ID], self.settings[Settings.ACCESS_TOKEN])
 
         # Backup history data to database
         if (statusCode == StatusCodes.TRAKT_SUCCESS):
@@ -126,14 +127,17 @@ class AppController():
             self.logger.ShowMessage("Watched data successfully exported to json file", UI.SUCCESS_LOG)
     
     def __BackupTraktItemsByType(self, type, folder):
+        clientID = self.settings[Settings.CLIENT_ID]
+        accessToken = self.settings[Settings.ACCESS_TOKEN]
+
         if (folder == Folders.COLLECTION_FOLDER):
-            data, statusCode = self.trakt.GetCollection(type, self.traktConfig['clientID'], self.traktConfig['accessToken'])
+            data, statusCode = self.trakt.GetCollection(type, clientID, accessToken)
         elif (folder == Folders.RATINGS_FOLDER):
-            data, statusCode = self.trakt.GetRatings(type, self.traktConfig['clientID'], self.traktConfig['accessToken'])
+            data, statusCode = self.trakt.GetRatings(type, clientID, accessToken)
         elif (folder == Folders.WATCHED_FOLDER):
-            data, statusCode = self.trakt.GetWatched(type, self.traktConfig['clientID'], self.traktConfig['accessToken'])
+            data, statusCode = self.trakt.GetWatched(type, clientID, accessToken)
         elif (folder == Folders.WATCHLIST_FOLDER):
-            data, statusCode = self.trakt.GetWatchlist(type, self.traktConfig['clientID'], self.traktConfig['accessToken'])
+            data, statusCode = self.trakt.GetWatchlist(type, clientID, accessToken)
 
         if (statusCode == StatusCodes.TRAKT_SUCCESS):
             self.logger.ShowMessage("Exporting data to json...")
@@ -148,20 +152,28 @@ class AppController():
         return statusCode
         
     def GetAccessToken(self):
-        return self.traktConfig['accessToken']
+        return self.settings[Settings.ACCESS_TOKEN]
     
     def GetRefreshToken(self):
-        return self.traktConfig['refreshToken']
+        return self.settings[Settings.REFRESH_TOKEN]
     
     def GetClientID(self):
-        return self.traktConfig['clientID']
+        return self.settings[Settings.CLIENT_ID]
     
     def GetClientSecret(self):
-        return self.traktConfig['clientSecret']
+        return self.settings[Settings.CLIENT_SECRET]
     
-    def SetTraktConfig(self, id, secret):
-        self.traktConfig['clientID'] = id
-        self.traktConfig['clientSecret'] = secret
+    def GetBackupFolder(self):
+        return self.settings[Settings.BACKUP_FOLDER]
+    
+    def SetTraktConfig(self, clientID, clientSecret):
+        self.settings[Settings.CLIENT_ID] = clientID
+        self.settings[Settings.CLIENT_SECRET] = clientSecret
+        self.__SaveConfig()
+
+    def SetBackupFolder(self, folder):
+        self.settings[Settings.BACKUP_FOLDER] = folder
+        self.exporter.SetBackupFolder(folder)
         self.__SaveConfig()
 
     def GetHistoryData(self, sender):
@@ -184,10 +196,10 @@ class AppController():
     
     def RefreshTraktToken(self):
         self.logger.ShowMessage("Refreshing access token...")
-        accessToken, refreshToken, statusCode = self.trakt.RefreshToken(self.traktConfig['clientID'], self.traktConfig['clientSecret'], self.traktConfig['refreshToken'])
+        accessToken, refreshToken, statusCode = self.trakt.RefreshToken(self.settings[Settings.CLIENT_ID], self.settings[Settings.CLIENT_SECRET], self.settings[Settings.REFRESH_TOKEN])
         if (statusCode == StatusCodes.TRAKT_SUCCESS):
-            self.traktConfig['accessToken'] = accessToken
-            self.traktConfig['refreshToken'] = refreshToken
+            self.settings[Settings.ACCESS_TOKEN] = accessToken
+            self.settings[Settings.REFRESH_TOKEN] = refreshToken
             self.__SaveConfig()
         else:
             self.logger.ShowMessage("Could not refresh token. Check previous logs", UI.ERROR_LOG)
@@ -241,34 +253,36 @@ class AppController():
         return watchedAt
 
     def __TraktUserAuthorized(self):
-        if (len(self.traktConfig['accessToken']) == 64):
+        if (len(self.settings[Settings.ACCESS_TOKEN]) == 64):
             return True
         else:
             return False
         
     def __LoadConfig(self):
-        data, statusCode = self.database.GetTraktSettings()
+        data, statusCode = self.database.GetSettings()
 
-        traktConfig = {'clientID' : "", 'clientSecret' : "", 'accessToken' : "", 'refreshToken' : ""}
+        settings = {Settings.CLIENT_ID : "", Settings.CLIENT_SECRET : "", Settings.ACCESS_TOKEN : "", Settings.REFRESH_TOKEN : "", Settings.USER : "", Settings.BACKUP_FOLDER : ""}
 
         if (statusCode == StatusCodes.DATABASE_OK):
             if (len(data) != 0):
-                traktConfig = {
+                settings = {
                     'clientID' : data[0][DB.CLIENT_ID_COLUMN],
                     'clientSecret' : data[0][DB.CLIENT_SECRET_COLUMN],
                     'accessToken' : data[0][DB.ACCESS_TOKEN_COLUMN],
-                    'refreshToken' : data[0][DB.REFRESH_TOKEN_COLUMN]
+                    'refreshToken' : data[0][DB.REFRESH_TOKEN_COLUMN],
+                    'user' : data[0][DB.USER_COLUMN],
+                    'backupFolder' : data[0][DB.BACKUP_FOLDER_COLUMN]
                 }
-                self.logger.ShowMessage("Trakt settings loaded from database")
+                self.logger.ShowMessage("Settings loaded from database")
             else:
-                self.logger.ShowMessage("No trakt settings found")
+                self.logger.ShowMessage("No settings found")
         else:
-            self.logger.ShowMessage("An error occurred when loading trakt settings. Check previous logs", UI.ERROR_LOG)
+            self.logger.ShowMessage("An error occurred when loading settings. Check previous logs", UI.ERROR_LOG)
 
-        return traktConfig
+        return settings
 
     def __SaveConfig(self):
-        statusCode = self.database.SaveTraktSettings(self.traktConfig['clientID'], self.traktConfig['clientSecret'], self.traktConfig['accessToken'], self.traktConfig['refreshToken'])
+        statusCode = self.database.SaveSettings(self.settings[Settings.CLIENT_ID], self.settings[Settings.CLIENT_SECRET], self.settings[Settings.ACCESS_TOKEN], self.settings[Settings.REFRESH_TOKEN], self.settings[Settings.USER], self.settings[Settings.BACKUP_FOLDER])
         if (statusCode == StatusCodes.DATABASE_OK):
             self.logger.ShowMessage("Settings saved to database", UI.SUCCESS_LOG)
         else:

@@ -80,21 +80,21 @@ class DatabaseManager():
         self.CloseDatabase()
         return data, statusCode
     
-    def GetTraktSettings(self):
+    def GetSettings(self):
         self.OpenDatabase()
-        self.logger.ShowMessage("Loading trakt settings...")
-        data, statusCode = self.__ExecuteQuery(DB.GET_TRAKT_SETTINGS)
+        self.logger.ShowMessage("Loading settings...")
+        data, statusCode = self.__ExecuteQuery(DB.GET_SETTINGS)
         self.CloseDatabase()    
         return data, statusCode
     
-    def SaveTraktSettings(self, clientID, clientSecret, accessToken, refreshToken):
-        self.logger.ShowMessage("Saving trakt settings...")
+    def SaveSettings(self, clientID, clientSecret, accessToken, refreshToken, user, backupFolder):
+        self.logger.ShowMessage("Saving settings...")
         self.OpenDatabase()
-        data, statusCode = self.__ExecuteQuery(DB.GET_TRAKT_SETTINGS)
+        data, statusCode = self.__ExecuteQuery(DB.GET_SETTINGS)
         
         if (statusCode == StatusCodes.DATABASE_OK):  
             query = DB.UPDATE_SETTINGS if (len(data) != 0) else DB.INSERT_SETTINGS
-            data, statusCode = self.__ExecuteQuery(query, (clientID, clientSecret, accessToken, refreshToken))
+            data, statusCode = self.__ExecuteQuery(query, (clientID, clientSecret, accessToken, refreshToken, user, backupFolder))
         self.CloseDatabase()
         return statusCode
 
@@ -103,7 +103,7 @@ class DatabaseManager():
         self.OpenDatabase()
         self.__CreateTableIfNotExists(DB.EPISODES_TABLE, ("episodes"))
         self.__CreateTableIfNotExists(DB.MOVIES_TABLE, ("movies"))
-        self.__CreateTableIfNotExists(DB.SETTINGS_TABLE, ("trakt_settings"))
+        self.__CreateTableIfNotExists(DB.SETTINGS_TABLE, ("settings"))
         self.CloseDatabase()
 
     def __CreateTableIfNotExists(self, query, name):

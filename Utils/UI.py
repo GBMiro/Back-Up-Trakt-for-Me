@@ -8,12 +8,13 @@ BACKUP_TAB = "backup_tab"
 TRAKT_TAB = "trakt_tab"
 
 
-# INPUTS #
+# USER SETTINGS #
 
 CLIENT_ID = "client_ID"
 CLIENT_SECRET = "client_secret"
 ACCES_TOKEN = "access_token"
 REFRESH_TOKEN = "refresh_token"
+BACKUP_FOLDER = "backup_folder"
 
 # BUTTONS #
 
@@ -25,9 +26,13 @@ SHOW_MOVIES = "movies"
 SCROLL = "scroll"
 CLEAR = "clear"
 
+SELECT_FOLDER = "folder"
 AUTHORIZE = "authorize"
 REFRESH = "refresh"
 SAVE = "save"
+
+# DIALOGS #
+FOLDER_DIALOG = "folder_selector"
 
 # TABLES #
 
