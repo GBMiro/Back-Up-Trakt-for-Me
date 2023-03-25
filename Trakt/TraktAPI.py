@@ -9,6 +9,7 @@ class TraktAPI:
 
     baseURL = "https://api.trakt.tv"
     traktAPIVersion = '2'
+    redirectURI = "urn:ietf:wg:oauth:2.0:oob"
     
     TRAKT_SYNC_LIMIT = 1000
 
@@ -18,46 +19,41 @@ class TraktAPI:
     def AuthorizeUser(self, clientID, clientSecret):
 
         authorizeHeader = {'Content-type': 'application/json'}
-
         postData = {"client_id" : clientID}
-        try:
-            response = requests.post(self.baseURL + '/oauth/device/code', json=postData, headers=authorizeHeader)
+        url = '/oauth/device/code'
+        response, statusCode = self.__PostURL(url, authorizeHeader, postData)
+    
+        if (statusCode == StatusCodes.TRAKT_SUCCESS):
+            authorizationData = response.json()
+            self.logger.ShowMessage("Go to {} in your browser and input the following code: {}".format(authorizationData['verification_url'], authorizationData['user_code']))
 
-            if (response.status_code == StatusCodes.TRAKT_SUCCESS):
-                authorizationData = response.json()
-                self.logger.ShowMessage("Go to {} in your browser and input the following code: {}".format(authorizationData['verification_url'], authorizationData['user_code']))
+            tokenData = {
+                "code" : authorizationData['device_code'],
+                'client_id' : clientID,
+                'client_secret' : clientSecret
+            }
 
-                tokenData = {
-                    "code" : authorizationData['device_code'],
-                    'client_id' : clientID,
-                    'client_secret' : clientSecret
-                }
+            url = '/oauth/device/token'
+            tokenResponse, statusCode = self.__PostURL(url, authorizeHeader, tokenData)
 
-                url = self.baseURL + '/oauth/device/token'
-                tokenResponse = requests.post(url , json=tokenData, headers=authorizeHeader)
+            pullTime = 0
+            expireTime = authorizationData['expires_in']
+            waitTimeToPull = authorizationData['interval']
 
-                pullTime = 0
-
-                while (tokenResponse.status_code != StatusCodes.TRAKT_SUCCESS and pullTime < authorizationData['expires_in']) :
-                    time.sleep(authorizationData['interval'])
-                    pullTime += authorizationData['interval']
-                    tokenResponse = requests.post(url, json=tokenData, headers=authorizeHeader)
-                    self.logger.ShowMessage("Response code: {}".format(tokenResponse.status_code))
-
-                if (tokenResponse.status_code != StatusCodes.TRAKT_SUCCESS) : 
-                    self.logger.ShowMessage("Could not authorize user. Code: {} {}".format(response.status_code, StatusCodes.statusMessages[response.status_code]), UI.ERROR_LOG)
-                    return {'accessToken' : None, 'refresh_token' : None, 'code' : tokenResponse.status_code}
-                else:
-                    tokenData = tokenResponse.json()
-                    return {'accessToken' : tokenData['access_token'], 'refresh_token' : tokenData['refresh_token'], 'code' : tokenResponse.status_code}
+            while (statusCode != StatusCodes.TRAKT_SUCCESS and pullTime < expireTime):
+                time.sleep(waitTimeToPull)
+                pullTime += waitTimeToPull
+                tokenResponse, statusCode = self.__PostURL(url, authorizeHeader, tokenData)
+                
+            if (statusCode != StatusCodes.TRAKT_SUCCESS) : 
+                self.logger.ShowMessage("Could not authorize user. Code: {} {}".format(statusCode, StatusCodes.statusMessages[statusCode]), UI.ERROR_LOG)
+                return {'accessToken' : None, 'refreshToken' : None, 'code' : statusCode}
             else:
-                self.logger.ShowMessage("Could not authorize user. Code: {} {}".format(response.status_code, StatusCodes.statusMessages[response.status_code]), UI.ERROR_LOG)
-                return {'accessToken' : None, 'refresh_token' : None, 'code' : response.status_code}
-            
-        except requests.exceptions.RequestException as err:
-            self.logger.ShowMessage("An error occurred in requests module: {}".format(err), UI.ERROR_LOG)
-            return {'accessToken' : None, 'refresh_token' : None, 'code' : StatusCodes.REQUESTS_ERROR}
-
+                tokenData = tokenResponse.json()
+                return {'accessToken' : tokenData['access_token'], 'refreshToken' : tokenData['refresh_token'], 'code' : statusCode}
+        else:
+            self.logger.ShowMessage("Could not authorize user. Code: {} {}".format(statusCode, StatusCodes.statusMessages[statusCode]), UI.ERROR_LOG)
+            return {'accessToken' : None, 'refreshToken' : None, 'code' : statusCode}
         
 
     def GetHistory(self, clientID, accessToken):
@@ -105,6 +101,35 @@ class TraktAPI:
 
     def GetSyncLimit(self):
         return self.TRAKT_SYNC_LIMIT
+    
+    def RefreshToken(self, clientID, clientSecret, refreshToken):
+        
+        refreshHeader = {'Content-type': 'application/json'}
+
+        postData = {
+            "refresh_token": refreshToken,
+            "client_id": clientID,
+            "client_secret": clientSecret,
+            "redirect_uri": self.redirectURI,
+            "grant_type": "refresh_token"
+        }
+        url = '/oauth/token'
+        
+        accessToken = None
+        refreshToken = None
+        
+        response, statusCode = self.__PostURL(url, refreshHeader, postData)
+        
+        if (statusCode == StatusCodes.TRAKT_SUCCESS):
+            data = response.json()
+            accessToken = data['access_token']
+            refreshToken = data['refresh_token']
+            self.logger.ShowMessage("New access token received")
+        else:
+            self.logger.ShowMessage("Could not refresh token. Error: {}".format(StatusCodes.statusMessages[statusCode]), UI.ERROR_LOG)
+
+        return accessToken, refreshToken, statusCode
+        
         
     def __BuildRequiredHeader(self, clientID, accessToken):
         header = {
@@ -114,6 +139,17 @@ class TraktAPI:
             'Authorization': "Bearer " + accessToken
         }   
         return header
+    
+    def __PostURL(self, url, headers, postData):
+        response = None
+        try:
+            response = requests.post(self.baseURL + url, json=postData, headers=headers)
+            statusCode = response.status_code
+        except requests.exceptions.RequestException as err:
+            self.logger.ShowMessage("Error requesting url. Error: {}".format(err), UI.ERROR_LOG)
+            statusCode = StatusCodes.REQUESTS_ERROR
+        finally:
+            return response, statusCode
     
     def __GetURL(self, url, headers):
         response = None

@@ -16,7 +16,8 @@ def AuthorizeUser(sender, app_data, user_data):
     UpdateUITraktSettings()
 
 def RefreshUserToken(sender, app_data, user_data):
-    pass
+    controller.RefreshTraktToken()
+    UpdateUITraktSettings()
 
 # Application functions
 

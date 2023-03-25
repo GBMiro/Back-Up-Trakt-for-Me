@@ -182,6 +182,16 @@ class AppController():
 
         return plays, statusCode
     
+    def RefreshTraktToken(self):
+        self.logger.ShowMessage("Refreshing access token...")
+        accessToken, refreshToken, statusCode = self.trakt.RefreshToken(self.traktConfig['clientID'], self.traktConfig['clientSecret'], self.traktConfig['refreshToken'])
+        if (statusCode == StatusCodes.TRAKT_SUCCESS):
+            self.traktConfig['accessToken'] = accessToken
+            self.traktConfig['refreshToken'] = refreshToken
+            self.__SaveConfig()
+        else:
+            self.logger.ShowMessage("Could not refresh token. Check previous logs", UI.ERROR_LOG)
+    
     def __ProcessTraktPlays(self, plays):
 
         episodes = []
