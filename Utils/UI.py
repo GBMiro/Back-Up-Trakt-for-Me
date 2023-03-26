@@ -8,31 +8,45 @@ BACKUP_TAB = "backup_tab"
 TRAKT_TAB = "trakt_tab"
 
 
-# INPUTS #
+# USER SETTINGS #
 
 CLIENT_ID = "client_ID"
 CLIENT_SECRET = "client_secret"
 ACCES_TOKEN = "access_token"
 REFRESH_TOKEN = "refresh_token"
+BACKUP_FOLDER = "backup_folder"
 
 # BUTTONS #
 
-BACKUP_BUTTON = "backup_button"
+BACKUP = "backup"
+SHOW_HISTORY = "all"
+SHOW_EPISODES = "episodes"
+SHOW_MOVIES = "movies"
 
-SCROLL_BUTTON = "scroll"
-CLEAR_BUTTON = "clear"
+SCROLL = "scroll"
+CLEAR = "clear"
 
-AUTHORIZE_BUTTON = "authorize"
-REFRESH_BUTTON = "refresh"
-SAVE_BUTTON = "save"
+SELECT_FOLDER = "folder"
+AUTHORIZE = "authorize"
+REFRESH = "refresh"
+SAVE = "save"
 
-# HISTORY #
+# DIALOGS #
+FOLDER_DIALOG = "folder_selector"
 
-HISTORY_LIST = "history"
+# TABLES #
+
+HISTORY_TABLE = "history_table"
 
 # --------------------------------------- #
 
 # VIEWPORT SETTINGS #
 
-VIEWPORT_MIN_WIDTH = 1000
-VIEWPORT_MIN_HEIGHT = 600
+VIEWPORT_MIN_WIDTH = 1250
+VIEWPORT_MIN_HEIGHT = 700
+
+# TEXT COLORS FOR CONSOLE #
+
+SUCCESS_LOG = [0,255,0]
+NORMAL_LOG = [255,255,255]
+ERROR_LOG = [255,0,0]
