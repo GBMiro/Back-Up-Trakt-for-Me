@@ -82,6 +82,9 @@ INSERT_SETTINGS = """INSERT INTO settings VALUES (?,?,?,?,?,?) ON CONFLICT (clie
 UPDATE_SETTINGS = """UPDATE settings
                         SET client_id = ?, client_secret = ?, access_token = ?, refresh_token = ?, backup_folder = ?"""
 
+DELETE_TOKENS = """ UPDATE settings
+                    SET access_token = "", refresh_token = "" """
+
 # TABLES CHECK & CREATION
 
 CHECK_TABLE = """SELECT name FROM sqlite_master WHERE type='table' AND name = ?"""

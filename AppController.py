@@ -25,7 +25,7 @@ class AppController():
 
 
     def AuthorizeTraktUser(self):
-        if not self.__TraktUserAuthorized():
+        if not self.TraktUserAuthorized():
             result = self.trakt.AuthorizeUser(self.settings[Settings.CLIENT_ID], self.settings[Settings.CLIENT_SECRET])
             if (result['code'] == StatusCodes.TRAKT_SUCCESS):
                 self.settings[Settings.ACCESS_TOKEN] = result[Settings.ACCESS_TOKEN]
@@ -49,7 +49,7 @@ class AppController():
         self.logger.ShowMessage("Backup finished. Check any red logs for errors")
     
     def __BackupHistory(self):
-        if (not self.__TraktUserAuthorized()):
+        if (not self.TraktUserAuthorized()):
             self.logger.ShowMessage("User is not authorized (missing trakt settings). Error: {} {}".format(StatusCodes.TRAKT_UNAUTHORIZED, StatusCodes.statusMessages[StatusCodes.TRAKT_UNAUTHORIZED]), UI.ERROR_LOG)
             return StatusCodes.TRAKT_UNAUTHORIZED
         
@@ -254,6 +254,16 @@ class AppController():
             self.__SaveConfig()
         else:
             self.logger.ShowMessage("Could not refresh token. Check previous logs", UI.ERROR_LOG)
+
+    def DeleteTraktToken(self):
+        self.logger.ShowMessage("Deleting tokens...")
+        statusCode = self.database.DeleteTokens()
+        if (statusCode == StatusCodes.DATABASE_OK):
+            self.settings[Settings.ACCESS_TOKEN] = ""
+            self.settings[Settings.REFRESH_TOKEN] = ""
+            self.logger.ShowMessage("Tokens successfully deleted", UI.SUCCESS_LOG)
+        else:
+            self.logger.ShowMessage("Could not delete tokens. Check previous logs", UI.ERROR_LOG)
     
     def __ProcessTraktPlays(self, plays):
 
@@ -303,7 +313,7 @@ class AppController():
         watchedAt = watchedAt.astimezone(tz.tzlocal()).strftime(formatTo)
         return watchedAt
 
-    def __TraktUserAuthorized(self):
+    def TraktUserAuthorized(self):
         if (len(self.settings[Settings.ACCESS_TOKEN]) == 64):
             return True
         else:

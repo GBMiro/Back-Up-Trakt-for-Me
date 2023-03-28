@@ -103,6 +103,12 @@ class DatabaseManager():
             data, statusCode = self.__ExecuteQuery(query, (clientID, clientSecret, accessToken, refreshToken, backupFolder))
         self.CloseDatabase()
         return statusCode
+    
+    def DeleteTokens(self):
+        self.OpenDatabase()
+        data, statusCode = self.__ExecuteQuery(DB.DELETE_TOKENS)
+        self.CloseDatabase()
+        return statusCode
 
     def __CheckTables(self):
         self.logger.ShowMessage("Checking tables...")
