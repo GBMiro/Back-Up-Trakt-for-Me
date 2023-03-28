@@ -19,6 +19,8 @@ BACKUP_FOLDER = "backup_folder"
 # BUTTONS #
 
 BACKUP = "backup"
+TYPE_COMBO = "type"
+YEAR_COMBO = "year"
 SHOW_HISTORY = "all"
 SHOW_EPISODES = "episodes"
 SHOW_MOVIES = "movies"

@@ -23,9 +23,9 @@ def RefreshUserToken(sender, app_data, user_data):
 
 def BackupTrakt():
     controller.BackupTrakt()
-    UpdateHistoryTable(UI.SHOW_HISTORY)
+    UpdateHistoryTable()
 
-def SelectBackupFolder(sender, app_data):
+def SelectBackupFolder(app_data):
     logger.ShowMessage(app_data)
     controller.SetBackupFolder(app_data['file_path_name'])
     UpdateUISettings()
@@ -39,6 +39,16 @@ def ClearConsole():
 def ScrollDown():
     logger.ScrollToBottom()
 
+def UpdateUIYearsCombo():
+    yearsDB, statusCode = controller.GetHistoryYears()
+    comboYears = ["All"]
+    if (statusCode == StatusCodes.CONTROLLER_OK):
+        for year in yearsDB:
+            comboYears.append(year['year'])    
+    GUI.configure_item(UI.YEAR_COMBO, items=comboYears)
+    GUI.configure_item(UI.YEAR_COMBO, default_value=comboYears[0])
+    GUI.set_value
+
 def UpdateUISettings():
     GUI.set_value(UI.CLIENT_ID, controller.GetClientID())
     GUI.set_value(UI.CLIENT_SECRET, controller.GetClientSecret())
@@ -47,10 +57,16 @@ def UpdateUISettings():
     GUI.set_value(UI.BACKUP_FOLDER, controller.GetBackupFolder())
 
 
-def UpdateHistoryTable(sender):
+def UpdateHistoryTable():
     GUI.delete_item(UI.HISTORY_TABLE, children_only=True)
-    AddColumnsToTable(sender)
-    data, statusCode = controller.GetHistoryData(sender)
+    media = GUI.get_value(UI.TYPE_COMBO)
+    year = GUI.get_value(UI.YEAR_COMBO)
+    movies = True if (media == "All" or media == "Movies") else False
+    episodes = True if (media =="All" or media == "Episodes") else False
+    AddColumnsToTable(movies, episodes)
+    if (year == "All"):
+        year = ""
+    data, statusCode = controller.GetHistoryData(movies, episodes, year)
 
     if (statusCode == StatusCodes.CONTROLLER_OK):
         for play in data:
@@ -73,19 +89,19 @@ def UpdateHistoryTable(sender):
         logger.ShowMessage("Showing {} plays from last database backup".format(len(data)))
 
 
-def AddColumnsToTable(sender):
+def AddColumnsToTable(movies, episodes):
 
     GUI.add_table_column(parent=UI.HISTORY_TABLE, label="Play ID")
     GUI.add_table_column(parent=UI.HISTORY_TABLE, label="Date")
 
-    if (sender == UI.SHOW_MOVIES):
+    if (movies and not episodes):
         GUI.add_table_column(parent=UI.HISTORY_TABLE, label="Movie")
-    elif (sender == UI.SHOW_EPISODES):
+    elif (episodes and not movies):
         GUI.add_table_column(parent=UI.HISTORY_TABLE, label="Show")
-    else:
+    elif (movies and episodes):    
         GUI.add_table_column(parent=UI.HISTORY_TABLE, label="Show / Movie")
-    
-    if (sender == UI.SHOW_EPISODES or sender == UI.SHOW_HISTORY):
+        
+    if (episodes):
         GUI.add_table_column(parent=UI.HISTORY_TABLE, label="Season")
         GUI.add_table_column(parent=UI.HISTORY_TABLE, label="Number")
         GUI.add_table_column(parent=UI.HISTORY_TABLE, label="Episode title")
@@ -99,19 +115,19 @@ def BuildUserInterface():
     with GUI.window(tag=UI.MAIN_WINDOW, no_collapse=True, no_move=True, show=True, no_title_bar=True, width=GUI.get_viewport_width(), height=GUI.get_viewport_height()):
         with GUI.tab_bar():
             with GUI.tab(tag=UI.BACKUP_TAB, label="Backup"):
-                GUI.add_text()
+                GUI.add_spacer(height=20)
                 with GUI.group(horizontal=True):
                     GUI.add_button(tag=UI.BACKUP, label="Backup Trakt", callback=BackupTrakt, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
                 
                 GUI.add_text()
                 GUI.add_separator()
                 with GUI.group(horizontal=True, horizontal_spacing=50):
-                    GUI.add_button(tag=UI.SHOW_HISTORY, label="Show all history", callback=UpdateHistoryTable, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
-                    GUI.add_button(tag=UI.SHOW_EPISODES, label="Show only episodes", callback=UpdateHistoryTable, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
-                    GUI.add_button(tag=UI.SHOW_MOVIES, label="Show only movies", callback=UpdateHistoryTable, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
+                    media = ("All", "Episodes", "Movies")
+                    GUI.add_combo(media, default_value=media[0], tag=UI.TYPE_COMBO, label="Media", height_mode=GUI.mvComboHeight_Small, width=200, callback=UpdateHistoryTable)
+                    GUI.add_combo(tag=UI.YEAR_COMBO, label="Year", height_mode=GUI.mvComboHeight_Small, width=200, callback=UpdateHistoryTable)
 
                 GUI.add_separator()
-                GUI.add_text()
+                GUI.add_spacer(height=20)
 
                 # History table
                 with GUI.table(tag=UI.HISTORY_TABLE, header_row=True, no_host_extendX=True, delay_search=True,
@@ -120,34 +136,32 @@ def BuildUserInterface():
                             policy=GUI.mvTable_SizingFixedFit, height=200,
                             scrollY=True, scrollX=True, clipper=True):
                 
-                    AddColumnsToTable(UI.SHOW_HISTORY)
+                    AddColumnsToTable(True, True)
 
             with GUI.tab(label="Settings"):
-                GUI.add_text("Client ID", show_label=True)
-                GUI.add_input_text(tag=UI.CLIENT_ID, no_spaces=True, default_value="Your client ID")
+                GUI.add_spacer(height=20)
+                GUI.add_input_text(tag=UI.CLIENT_ID, no_spaces=True, default_value="Your client ID", label="Client ID")
                 GUI.add_separator()
-                GUI.add_text("Client Secret", show_label=True)
-                GUI.add_input_text(tag=UI.CLIENT_SECRET, no_spaces=True, default_value="Your client secret")
+                GUI.add_input_text(tag=UI.CLIENT_SECRET, no_spaces=True, default_value="Your client secret", label="Client Secret")
+
+                
+                GUI.add_button(tag=UI.AUTHORIZE, label="Authorize User", callback=AuthorizeUser)
+
+                GUI.add_spacer(height=20)
                 GUI.add_separator()
-                GUI.add_text("Access Token")
-                GUI.add_text(tag=UI.ACCES_TOKEN, default_value="Your access token")
+                GUI.add_input_text(tag=UI.ACCES_TOKEN, no_spaces=True, enabled=False, default_value="It will show user refresh token once authorized", label="Access Token")
                 GUI.add_separator()
-                GUI.add_text("Refresh Token", show_label=True)
-                GUI.add_text(tag=UI.REFRESH_TOKEN, default_value="Your refresh token")
-                GUI.add_separator()
-                GUI.add_text("Backup folder")
-                GUI.add_text(tag=UI.BACKUP_FOLDER, default_value='.')
+                GUI.add_input_text(tag=UI.REFRESH_TOKEN, no_spaces=True, enabled=False, default_value="It will show user refresh token once authorized", label="Refresh Token")
+
+                GUI.add_button(tag=UI.REFRESH, label="Refresh Token", callback=RefreshUserToken)
+
+                GUI.add_spacer(height=20)
+                GUI.add_input_text(tag=UI.BACKUP_FOLDER, default_value='.', enabled=False, label= "Backup Folder")
                 GUI.add_button(tag=UI.SELECT_FOLDER, label="Select backup folder", callback=lambda: GUI.show_item(UI.FOLDER_DIALOG))
                 GUI.add_file_dialog(tag=UI.FOLDER_DIALOG, label="Select backup folder...", directory_selector=True, show=False, callback=SelectBackupFolder, cancel_callback=SelectBackupFolderCancelled, width=700, height=400)
 
-                with GUI.group(horizontal=True):
-                    GUI.add_button(tag=UI.AUTHORIZE, label="Authorize User", callback=AuthorizeUser)
-                    GUI.add_button(tag=UI.REFRESH, label="Refresh Token", callback=RefreshUserToken)
             
-        with GUI.group():
-            GUI.add_text("Console", parent=UI.MAIN_WINDOW)
-            GUI.add_separator(parent=UI.MAIN_WINDOW)
-
+        GUI.add_spacer(height=20)
         with GUI.group(horizontal=True):
             GUI.add_button(tag=UI.SCROLL, label="Scroll to bottom", callback=ScrollDown)
             GUI.add_button(tag=UI.CLEAR, label="Clear", callback=ClearConsole)
@@ -170,7 +184,8 @@ if (useUI):
     controller = AppController(useUI)
     
     UpdateUISettings()
-    UpdateHistoryTable(UI.SHOW_HISTORY)
+    UpdateUIYearsCombo()
+    UpdateHistoryTable()
 
     GUI.setup_dearpygui()
     GUI.set_viewport_resizable(True)

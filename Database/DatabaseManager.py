@@ -59,24 +59,24 @@ class DatabaseManager():
         finally:
             return data, statusCode
 
-    def GetHistory(self):
+    def GetHistoryByYear(self, year):
         self.OpenDatabase()
         self.logger.ShowMessage("Selecting all plays...")
-        data, statusCode = self.__ExecuteQuery(DB.GET_HISTORY)
+        data, statusCode = self.__ExecuteQuery(DB.GET_HISTORY.format(year, year))
         self.CloseDatabase()
         return data, statusCode
     
-    def GetMovies(self):
+    def GetMoviesByYear(self, year):
         self.OpenDatabase()
         self.logger.ShowMessage("Selecting movie plays...")
-        data, statusCode = self.__ExecuteQuery(DB.GET_MOVIES)
+        data, statusCode = self.__ExecuteQuery(DB.GET_MOVIES.format(year))
         self.CloseDatabase()
         return data, statusCode
         
-    def GetEpisodes(self):
+    def GetEpisodesByYear(self, year):
         self.OpenDatabase()
         self.logger.ShowMessage("Selecting episode plays...")
-        data, statusCode = self.__ExecuteQuery(DB.GET_EPISODES)
+        data, statusCode = self.__ExecuteQuery(DB.GET_EPISODES.format(year))
         self.CloseDatabase()
         return data, statusCode
     
@@ -85,6 +85,12 @@ class DatabaseManager():
         self.logger.ShowMessage("Loading settings...")
         data, statusCode = self.__ExecuteQuery(DB.GET_SETTINGS)
         self.CloseDatabase()    
+        return data, statusCode
+    
+    def GetHistoryYears(self):
+        self.OpenDatabase()
+        data, statusCode = self.__ExecuteQuery(DB.GET_HISTORY_YEARS)
+        self.CloseDatabase()
         return data, statusCode
     
     def SaveSettings(self, clientID, clientSecret, accessToken, refreshToken, backupFolder):

@@ -218,23 +218,32 @@ class AppController():
         self.exporter.SetBackupFolder(folder)
         self.__SaveConfig()
 
-    def GetHistoryData(self, sender):
-        self.logger.ShowMessage("Querying database for {} plays...".format(sender))
+    def GetHistoryData(self, movies, episodes, year):
+        self.logger.ShowMessage("Querying database for plays...")
         plays = []
 
-        if (sender == UI.SHOW_HISTORY):
-            plays, statusCode = self.database.GetHistory()
-        elif (sender == UI.SHOW_EPISODES):
-            plays, statusCode = self.database.GetEpisodes()
+        if (movies and episodes):
+            plays, statusCode = self.database.GetHistoryByYear(year)
+        elif (episodes):
+            plays, statusCode = self.database.GetEpisodesByYear(year)
         else:
-            plays, statusCode = self.database.GetMovies()
-
+            plays, statusCode = self.database.GetMoviesByYear(year)
+        
         if (statusCode != StatusCodes.DATABASE_OK):
             self.logger.ShowMessage("Request finished with an error. Check previous logs", UI.ERROR_LOG)
         else:
             statusCode = StatusCodes.CONTROLLER_OK
 
         return plays, statusCode
+    
+    def GetHistoryYears(self):
+        years, statusCode = self.database.GetHistoryYears()
+        if (statusCode != StatusCodes.DATABASE_OK):
+            self.logger.ShowMessage("Could not get history years. Check previous logs", UI.ERROR_LOG)
+        else:
+            statusCode = StatusCodes.CONTROLLER_OK
+
+        return years, statusCode
     
     def RefreshTraktToken(self):
         self.logger.ShowMessage("Refreshing access token...")
