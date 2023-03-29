@@ -1,4 +1,5 @@
 import sqlite3
+import os.path
 import Utils.UI as UI
 import Utils.StatusCodes as StatusCodes
 import Utils.Database as DB
@@ -14,7 +15,7 @@ class DatabaseManager():
         self.__CheckTables()
 
     def OpenDatabase(self):
-        self.connection = sqlite3.connect(".\\Database\\trakt_history.db")
+        self.connection = sqlite3.connect(os.path.join(".", "Database", "trakt_history.db"))
         self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
 

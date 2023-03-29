@@ -120,6 +120,7 @@ def AddColumnsToTable(movies, episodes):
         GUI.add_table_column(parent=UI.HISTORY_TABLE, label="Episode title")
 
     GUI.add_table_column(parent=UI.HISTORY_TABLE, label="Watched at")
+    GUI.configure_item(UI.HISTORY_TABLE, freeze_rows=1)
         
 
 def BuildUserInterface():
