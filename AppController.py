@@ -38,20 +38,20 @@ class AppController():
         return StatusCodes.TRAKT_SUCCESS
     
     def BackupTrakt(self):
-        self.logger.ShowMessage("Starting backup process...")
-        self.exporter.CreateExportFolders()
-        self.__BackupHistory()
-        self.__BackupRatings()
-        self.__BackupCollection()
-        self.__BackupWatched()
-        self.__BackupWatchlist()
-        self.__BackupLists()
-        self.logger.ShowMessage("Backup finished. Check any red logs for errors")
+        if (self.TraktUserAuthorized()):
+            self.logger.ShowMessage("Starting backup process...")
+            self.exporter.CreateExportFolders()
+            self.__BackupHistory()
+            self.__BackupRatings()
+            self.__BackupCollection()
+            self.__BackupWatched()
+            self.__BackupWatchlist()
+            self.__BackupLists()
+            self.logger.ShowMessage("Backup finished. Check any red logs for errors")
+        else:
+            self.logger.ShowMessage("User is not authorized (missing trakt settings). Error: {} {}".format(StatusCodes.TRAKT_UNAUTHORIZED, StatusCodes.statusMessages[StatusCodes.TRAKT_UNAUTHORIZED]), UI.ERROR_LOG)
     
     def __BackupHistory(self):
-        if (not self.TraktUserAuthorized()):
-            self.logger.ShowMessage("User is not authorized (missing trakt settings). Error: {} {}".format(StatusCodes.TRAKT_UNAUTHORIZED, StatusCodes.statusMessages[StatusCodes.TRAKT_UNAUTHORIZED]), UI.ERROR_LOG)
-            return StatusCodes.TRAKT_UNAUTHORIZED
         
         self.logger.ShowMessage("Starting history backup...")
 

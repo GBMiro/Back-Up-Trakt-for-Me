@@ -29,7 +29,7 @@ def BackupTrakt():
     controller.BackupTrakt()
     UpdateHistoryTable()
 
-def SelectBackupFolder(app_data):
+def SelectBackupFolder(sender, app_data, user_data):
     logger.ShowMessage(app_data)
     controller.SetBackupFolder(app_data['file_path_name'])
     UpdateUISettings()

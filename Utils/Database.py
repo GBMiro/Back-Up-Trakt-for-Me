@@ -75,7 +75,7 @@ INSERT_EPISODE = """INSERT INTO episodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CON
 
 INSERT_MOVIE = """INSERT INTO movies VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (play_ID) DO NOTHING"""
 
-INSERT_SETTINGS = """INSERT INTO settings VALUES (?,?,?,?,?,?) ON CONFLICT (client_id, client_secret) DO NOTHING"""
+INSERT_SETTINGS = """INSERT INTO settings VALUES (?,?,?,?,?) ON CONFLICT (client_id, client_secret) DO NOTHING"""
 
 # UPDATE QUERYS
 
