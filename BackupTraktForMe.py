@@ -8,14 +8,14 @@ import argparse
 
 # Trakt configuration functions
 
-def AuthorizeUser(sender, app_data, user_data):
+def AuthorizeUser():
     id = GUI.get_value(UI.CLIENT_ID)
     secret = GUI.get_value(UI.CLIENT_SECRET)
     controller.SetTraktConfig(id, secret)
     controller.AuthorizeTraktUser()
     UpdateUISettings()
 
-def RefreshUserToken(sender, app_data, user_data):
+def RefreshUserToken():
     controller.RefreshTraktToken()
     UpdateUISettings()
 
@@ -31,7 +31,6 @@ def BackupTrakt():
     UpdateHistoryTable()
 
 def SelectBackupFolder(sender, app_data, user_data):
-    logger.ShowMessage(app_data)
     controller.SetBackupFolder(app_data['file_path_name'])
     UpdateUISettings()
 

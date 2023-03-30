@@ -58,6 +58,7 @@ class TraktAPI:
                 return {'accessToken' : None, 'refreshToken' : None, 'code' : statusCode}
             else:
                 tokenData = tokenResponse.json()
+                self.logger.ShowMessage("Tokens received!", UI.SUCCESS_LOG)
                 return {'accessToken' : tokenData['access_token'], 'refreshToken' : tokenData['refresh_token'], 'code' : statusCode}
         else:
             self.logger.ShowMessage("Could not authorize user. Code: {} {}".format(statusCode, StatusCodes.statusMessages[statusCode]), UI.ERROR_LOG)
@@ -219,6 +220,7 @@ class TraktAPI:
             data = response.json()
             self.logger.ShowMessage("{} downloaded".format(type), UI.SUCCESS_LOG)
         else:
+            self.logger.ShowMessage(statusCode)
             self.logger.ShowMessage("Could not download {}. An error occurred: {} {}.".format(type, statusCode, StatusCodes.statusMessages[statusCode]), UI.ERROR_LOG)
 
         return data, statusCode

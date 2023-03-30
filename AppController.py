@@ -42,12 +42,12 @@ class AppController():
             self.logger.ShowMessage("Starting backup process...")
             self.exporter.CreateExportFolders()
             self.__BackupHistory()
-            self.__BackupRatings()
-            self.__BackupCollection()
-            self.__BackupWatched()
-            self.__BackupWatchlist()
+            self.__BackupTraktItem("Ratings", Folders.RATINGS_FOLDER)
+            self.__BackupTraktItem("Collection", Folders.COLLECTION_FOLDER)
+            self.__BackupTraktItem("Watched", Folders.WATCHED_FOLDER)
+            self.__BackupTraktItem("Watchlist", Folders.WATCHLIST_FOLDER)
             self.__BackupLists()
-            self.logger.ShowMessage("Backup finished. Check any red logs for errors")
+            self.logger.ShowMessage("Backup finished. Check log for errors")
         else:
             self.logger.ShowMessage("User is not authorized (missing trakt settings). Error: {} {}".format(StatusCodes.TRAKT_UNAUTHORIZED, StatusCodes.statusMessages[StatusCodes.TRAKT_UNAUTHORIZED]), UI.ERROR_LOG)
     
@@ -79,53 +79,6 @@ class AppController():
             self.logger.ShowMessage("Exporting history data to json file failed. Check previous logs", UI.ERROR_LOG)
         else:
             self.logger.ShowMessage("History data successfully exported to json file", UI.SUCCESS_LOG)
-    
-    def __BackupRatings(self):
-        self.logger.ShowMessage("Starting backup of ratings...")
-        errors = ''
-        statusCodeMovies = self.__BackupTraktItemsByType("movies", Folders.RATINGS_FOLDER)
-        statusCodeEpisodes = self.__BackupTraktItemsByType("episodes", Folders.RATINGS_FOLDER)
-        statusCodeSeasons = self.__BackupTraktItemsByType("seasons", Folders.RATINGS_FOLDER)
-        statusCodeShows = self.__BackupTraktItemsByType("shows", Folders.RATINGS_FOLDER)
-
-
-        if (statusCodeMovies != StatusCodes.EXPORTER_OK or statusCodeEpisodes != StatusCodes.EXPORTER_OK
-            or statusCodeSeasons != StatusCodes.EXPORTER_OK or statusCodeShows != StatusCodes.EXPORTER_OK):
-
-            self.logger.ShowMessage("Ratings backup finished with errors. Check previous logs".format(errors), UI.ERROR_LOG)
-        else:
-            self.logger.ShowMessage("Ratings data successfully exported to json file", UI.SUCCESS_LOG)
-
-    def __BackupCollection(self):
-        self.logger.ShowMessage("Starting backup of collection...")
-        statusCodeMovies = self.__BackupTraktItemsByType("movies", Folders.COLLECTION_FOLDER)
-        statusCodeShows = self.__BackupTraktItemsByType("shows", Folders.COLLECTION_FOLDER)
-
-        if (statusCodeMovies != StatusCodes.EXPORTER_OK or statusCodeShows != StatusCodes.EXPORTER_OK):
-            self.logger.ShowMessage("Collection backup finished with errors. Check previous logs", UI.ERROR_LOG)
-        else:
-            self.logger.ShowMessage("Collection data successfully exported to json file", UI.SUCCESS_LOG)
-        
-
-    def __BackupWatchlist(self):
-        self.logger.ShowMessage("Starting backup of watchlist...")
-        statusCodeMovies = self.__BackupTraktItemsByType("movies", Folders.WATCHLIST_FOLDER)
-        statusCodeShows = self.__BackupTraktItemsByType("shows", Folders.WATCHLIST_FOLDER)
-
-        if (statusCodeMovies != StatusCodes.EXPORTER_OK and statusCodeShows != StatusCodes.EXPORTER_OK):
-            self.logger.ShowMessage("Watchlist backup finished with errors. Check previous logs", UI.ERROR_LOG)
-        else:
-            self.logger.ShowMessage("Watchlist data successfully exported to json file", UI.SUCCESS_LOG)
-
-    def __BackupWatched(self):
-        self.logger.ShowMessage("Starting backup of watched...")
-        statusCodeMovies = self.__BackupTraktItemsByType("movies", Folders.WATCHED_FOLDER)
-        statusCodeShows = self.__BackupTraktItemsByType("shows", Folders.WATCHED_FOLDER)
-
-        if (statusCodeMovies != StatusCodes.EXPORTER_OK and statusCodeShows != StatusCodes.EXPORTER_OK):
-            self.logger.ShowMessage("Watched backup finished with errors. Check previous logs", UI.ERROR_LOG)
-        else:
-            self.logger.ShowMessage("Watched data successfully exported to json file", UI.SUCCESS_LOG)
 
     def __BackupLists(self):
         self.logger.ShowMessage("Starting backup of lists...")
@@ -167,6 +120,27 @@ class AppController():
             self.logger.ShowMessage("Error getting lists from trakt.", UI.ERROR_LOG)
             self.logger.ShowMessage("Backup of lists finished with errors. Check previous logs", UI.ERROR_LOG)            
         
+    def __BackupTraktItem(self, item, folder):
+        self.logger.ShowMessage("Starting backup of {}...".format(item))
+        statusCodeMovies = self.__BackupTraktItemsByType("movies", folder)
+        statusCodeShows = self.__BackupTraktItemsByType("shows", folder)
+        
+        # Only export seasons and episodes type for ratings and watchlist.
+        # Collection and Watched do not have seasons and they already include the information. 
+        if (folder == Folders.RATINGS_FOLDER or folder == Folders.WATCHLIST_FOLDER):
+            statusCodeSeasons = self.__BackupTraktItemsByType("seasons", folder)
+            statusCodeEpisodes = self.__BackupTraktItemsByType("episodes", folder)
+        else:
+            # Set to EXPORTER_OK if item has no seasons or episodes type
+            statusCodeSeasons = StatusCodes.EXPORTER_OK
+            statusCodeEpisodes = StatusCodes.EXPORTER_OK
+
+        if (statusCodeMovies != StatusCodes.EXPORTER_OK or statusCodeEpisodes != StatusCodes.EXPORTER_OK
+            or statusCodeSeasons != StatusCodes.EXPORTER_OK or statusCodeShows != StatusCodes.EXPORTER_OK):
+
+            self.logger.ShowMessage("{} backup finished with errors. Check previous logs".format(item), UI.ERROR_LOG)
+        else:
+            self.logger.ShowMessage("{} data successfully exported to json file".format(item), UI.SUCCESS_LOG)
     
     def __BackupTraktItemsByType(self, type, folder):
         clientID = self.settings[Settings.CLIENT_ID]

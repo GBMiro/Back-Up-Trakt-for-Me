@@ -7,6 +7,7 @@ TRAKT_PENDING_OR_BAD_REQUEST = 400
 TRAKT_UNAUTHORIZED = 401
 TRAKT_FORBIDDEN = 403
 TRAKT_NOT_FOUND_OR_INVALID_CODE = 404
+TRAKT_METHOD_NOT_FOUND = 405
 TRAKT_CODE_USED = 409
 TRAKT_CODE_EXPIRED = 410
 TRAKT_PRECONDITION_FAILED = 412
@@ -53,6 +54,7 @@ statusMessages = {
     TRAKT_UNAUTHORIZED : 'Unauthorized - OAuth must be provided',
     TRAKT_FORBIDDEN : 'Forbidden - invalid API key or unapproved app',
     TRAKT_NOT_FOUND_OR_INVALID_CODE : 'Not Found - method exists, but no record found / Invalid device code to authorize user',
+    TRAKT_METHOD_NOT_FOUND : 'Method not found - method does not exist',
     TRAKT_CODE_USED : 'Already Used - user already approved this code',
     TRAKT_CODE_EXPIRED : 'Expired - the tokens have expired, restart the process',
     TRAKT_PRECONDITION_FAILED:'Precondition Failed - use application/json content type',
