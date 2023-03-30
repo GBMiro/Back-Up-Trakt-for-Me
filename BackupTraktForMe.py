@@ -27,6 +27,7 @@ def DeleteUserToken():
 
 def BackupTrakt():
     controller.BackupTrakt()
+    UpdateUIYearsCombo()
     UpdateHistoryTable()
 
 def SelectBackupFolder(sender, app_data, user_data):
@@ -67,6 +68,7 @@ def UpdateUISettings():
         GUI.configure_item(UI.REFRESH, show=True)
         GUI.configure_item(UI.DELETE, show=True)
     else:
+        GUI.configure_item(UI.AUTHORIZE, show=True)
         GUI.configure_item(UI.REFRESH, show=False)
         GUI.configure_item(UI.DELETE, show=False)
 
@@ -134,7 +136,7 @@ def BuildUserInterface():
                 # Trakt backup
                 GUI.add_spacer(height=20)
                 with GUI.group(horizontal=True):
-                    GUI.add_button(tag=UI.BACKUP, label="Backup Trakt", callback=BackupTrakt, width=GUI.get_item_width(UI.MAIN_WINDOW) * 0.3)
+                    GUI.add_button(tag=UI.BACKUP, label="Backup Trakt", callback=BackupTrakt)
                 
                 GUI.add_text()
                 GUI.add_separator()
