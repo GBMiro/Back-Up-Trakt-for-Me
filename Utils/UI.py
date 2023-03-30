@@ -19,17 +19,21 @@ BACKUP_FOLDER = "backup_folder"
 # BUTTONS #
 
 BACKUP = "backup"
-SHOW_HISTORY = "all"
-SHOW_EPISODES = "episodes"
-SHOW_MOVIES = "movies"
-
 SCROLL = "scroll"
 CLEAR = "clear"
 
 SELECT_FOLDER = "folder"
 AUTHORIZE = "authorize"
 REFRESH = "refresh"
+DELETE = "delete"
 SAVE = "save"
+
+# COMBOS #
+
+TYPE_COMBO = "type"
+YEAR_COMBO = "year"
+YEARS_LIST = ["All"]
+TYPES_LIST = ["All", "Episodes", "Movies"]
 
 # DIALOGS #
 FOLDER_DIALOG = "folder_selector"

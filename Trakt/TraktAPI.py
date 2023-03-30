@@ -25,7 +25,7 @@ class TraktAPI:
     
         if (statusCode == StatusCodes.TRAKT_SUCCESS):
             authorizationData = response.json()
-            self.logger.ShowMessage("Go to {} in your browser and input the following code: {}".format(authorizationData['verification_url'], authorizationData['user_code']))
+            self.logger.ShowMessage("Go to {} in your browser and input the following code: {}".format(authorizationData['verification_url'], authorizationData['user_code']), UI.SUCCESS_LOG)
 
             tokenData = {
                 "code" : authorizationData['device_code'],
@@ -34,22 +34,31 @@ class TraktAPI:
             }
 
             url = '/oauth/device/token'
-            tokenResponse, statusCode = self.__PostURL(url, authorizeHeader, tokenData)
-
-            pullTime = 0
             expireTime = authorizationData['expires_in']
             waitTimeToPull = authorizationData['interval']
+            pullTime = 0
+            pull = True
 
-            while (statusCode != StatusCodes.TRAKT_SUCCESS and pullTime < expireTime):
-                time.sleep(waitTimeToPull)
-                pullTime += waitTimeToPull
+            while (pull):
                 tokenResponse, statusCode = self.__PostURL(url, authorizeHeader, tokenData)
-                
+                if (statusCode == StatusCodes.TRAKT_SUCCESS):
+                    pull = False
+                elif (statusCode != StatusCodes.TRAKT_PENDING_OR_BAD_REQUEST):
+                    pull = False
+                else:   
+                    time.sleep(waitTimeToPull)
+                    pullTime += waitTimeToPull
+
+                    if (pullTime >= expireTime):
+                        pull = False
+                        statusCode = StatusCodes.TRAKT_CODE_EXPIRED
+
             if (statusCode != StatusCodes.TRAKT_SUCCESS) : 
                 self.logger.ShowMessage("Could not authorize user. Code: {} {}".format(statusCode, StatusCodes.statusMessages[statusCode]), UI.ERROR_LOG)
                 return {'accessToken' : None, 'refreshToken' : None, 'code' : statusCode}
             else:
                 tokenData = tokenResponse.json()
+                self.logger.ShowMessage("Tokens received!", UI.SUCCESS_LOG)
                 return {'accessToken' : tokenData['access_token'], 'refreshToken' : tokenData['refresh_token'], 'code' : statusCode}
         else:
             self.logger.ShowMessage("Could not authorize user. Code: {} {}".format(statusCode, StatusCodes.statusMessages[statusCode]), UI.ERROR_LOG)
@@ -76,7 +85,7 @@ class TraktAPI:
         header = self.__BuildRequiredHeader(clientID, accessToken)
         self.logger.ShowMessage("Downloading {} collection...".format(type))
         url = '/sync/collection/{}?extended=metadata'.format(type)
-        # This trakt API call does not have pagination. Call __GetURLWithNoPagination directly
+        # This trakt API call does not have pagination. Call __GetURLWithNoPagination
         collection, statusCode = self.__GetURLWithNoPagination(url, header, "{} collection".format(type))
 
         return collection, statusCode
@@ -85,7 +94,7 @@ class TraktAPI:
         header = self.__BuildRequiredHeader(clientID, accessToken)
         self.logger.ShowMessage("Downloading watched {}...".format(type))
         url = '/sync/watched/{}'.format(type)
-        # This trakt API call does not have pagination. Call __GetURLWithNoPagination directly
+        # This trakt API call does not have pagination. Call __GetURLWithNoPagination
         watched, statusCode = self.__GetURLWithNoPagination(url, header, "{} watched".format(type))
 
         return watched, statusCode
@@ -211,6 +220,7 @@ class TraktAPI:
             data = response.json()
             self.logger.ShowMessage("{} downloaded".format(type), UI.SUCCESS_LOG)
         else:
+            self.logger.ShowMessage(statusCode)
             self.logger.ShowMessage("Could not download {}. An error occurred: {} {}.".format(type, statusCode, StatusCodes.statusMessages[statusCode]), UI.ERROR_LOG)
 
         return data, statusCode

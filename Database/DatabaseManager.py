@@ -1,4 +1,5 @@
 import sqlite3
+import os.path
 import Utils.UI as UI
 import Utils.StatusCodes as StatusCodes
 import Utils.Database as DB
@@ -14,7 +15,7 @@ class DatabaseManager():
         self.__CheckTables()
 
     def OpenDatabase(self):
-        self.connection = sqlite3.connect(".\\Database\\trakt_history.db")
+        self.connection = sqlite3.connect(os.path.join(".", "Database", "trakt_history.db"))
         self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
 
@@ -59,24 +60,24 @@ class DatabaseManager():
         finally:
             return data, statusCode
 
-    def GetHistory(self):
+    def GetHistoryByYear(self, year):
         self.OpenDatabase()
         self.logger.ShowMessage("Selecting all plays...")
-        data, statusCode = self.__ExecuteQuery(DB.GET_HISTORY)
+        data, statusCode = self.__ExecuteQuery(DB.GET_HISTORY.format(year, year))
         self.CloseDatabase()
         return data, statusCode
     
-    def GetMovies(self):
+    def GetMoviesByYear(self, year):
         self.OpenDatabase()
         self.logger.ShowMessage("Selecting movie plays...")
-        data, statusCode = self.__ExecuteQuery(DB.GET_MOVIES)
+        data, statusCode = self.__ExecuteQuery(DB.GET_MOVIES.format(year))
         self.CloseDatabase()
         return data, statusCode
         
-    def GetEpisodes(self):
+    def GetEpisodesByYear(self, year):
         self.OpenDatabase()
         self.logger.ShowMessage("Selecting episode plays...")
-        data, statusCode = self.__ExecuteQuery(DB.GET_EPISODES)
+        data, statusCode = self.__ExecuteQuery(DB.GET_EPISODES.format(year))
         self.CloseDatabase()
         return data, statusCode
     
@@ -87,6 +88,12 @@ class DatabaseManager():
         self.CloseDatabase()    
         return data, statusCode
     
+    def GetHistoryYears(self):
+        self.OpenDatabase()
+        data, statusCode = self.__ExecuteQuery(DB.GET_HISTORY_YEARS)
+        self.CloseDatabase()
+        return data, statusCode
+    
     def SaveSettings(self, clientID, clientSecret, accessToken, refreshToken, backupFolder):
         self.logger.ShowMessage("Saving settings...")
         self.OpenDatabase()
@@ -95,6 +102,12 @@ class DatabaseManager():
         if (statusCode == StatusCodes.DATABASE_OK):  
             query = DB.UPDATE_SETTINGS if (len(data) != 0) else DB.INSERT_SETTINGS
             data, statusCode = self.__ExecuteQuery(query, (clientID, clientSecret, accessToken, refreshToken, backupFolder))
+        self.CloseDatabase()
+        return statusCode
+    
+    def DeleteTokens(self):
+        self.OpenDatabase()
+        data, statusCode = self.__ExecuteQuery(DB.DELETE_TOKENS)
         self.CloseDatabase()
         return statusCode
 

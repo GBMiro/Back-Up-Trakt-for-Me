@@ -25,7 +25,7 @@ class AppController():
 
 
     def AuthorizeTraktUser(self):
-        if not self.__TraktUserAuthorized():
+        if not self.TraktUserAuthorized():
             result = self.trakt.AuthorizeUser(self.settings[Settings.CLIENT_ID], self.settings[Settings.CLIENT_SECRET])
             if (result['code'] == StatusCodes.TRAKT_SUCCESS):
                 self.settings[Settings.ACCESS_TOKEN] = result[Settings.ACCESS_TOKEN]
@@ -38,20 +38,20 @@ class AppController():
         return StatusCodes.TRAKT_SUCCESS
     
     def BackupTrakt(self):
-        self.logger.ShowMessage("Starting backup process...")
-        self.exporter.CreateExportFolders()
-        self.__BackupHistory()
-        self.__BackupRatings()
-        self.__BackupCollection()
-        self.__BackupWatched()
-        self.__BackupWatchlist()
-        self.__BackupLists()
-        self.logger.ShowMessage("Backup finished. Check any red logs for errors")
+        if (self.TraktUserAuthorized()):
+            self.logger.ShowMessage("Starting backup process...")
+            self.exporter.CreateExportFolders()
+            self.__BackupHistory()
+            self.__BackupTraktItem("Ratings", Folders.RATINGS_FOLDER)
+            self.__BackupTraktItem("Collection", Folders.COLLECTION_FOLDER)
+            self.__BackupTraktItem("Watched", Folders.WATCHED_FOLDER)
+            self.__BackupTraktItem("Watchlist", Folders.WATCHLIST_FOLDER)
+            self.__BackupLists()
+            self.logger.ShowMessage("Backup finished. Check log for errors")
+        else:
+            self.logger.ShowMessage("User is not authorized (missing trakt settings). Error: {} {}".format(StatusCodes.TRAKT_UNAUTHORIZED, StatusCodes.statusMessages[StatusCodes.TRAKT_UNAUTHORIZED]), UI.ERROR_LOG)
     
     def __BackupHistory(self):
-        if (not self.__TraktUserAuthorized()):
-            self.logger.ShowMessage("User is not authorized (missing trakt settings). Error: {} {}".format(StatusCodes.TRAKT_UNAUTHORIZED, StatusCodes.statusMessages[StatusCodes.TRAKT_UNAUTHORIZED]), UI.ERROR_LOG)
-            return StatusCodes.TRAKT_UNAUTHORIZED
         
         self.logger.ShowMessage("Starting history backup...")
 
@@ -79,53 +79,6 @@ class AppController():
             self.logger.ShowMessage("Exporting history data to json file failed. Check previous logs", UI.ERROR_LOG)
         else:
             self.logger.ShowMessage("History data successfully exported to json file", UI.SUCCESS_LOG)
-    
-    def __BackupRatings(self):
-        self.logger.ShowMessage("Starting backup of ratings...")
-        errors = ''
-        statusCodeMovies = self.__BackupTraktItemsByType("movies", Folders.RATINGS_FOLDER)
-        statusCodeEpisodes = self.__BackupTraktItemsByType("episodes", Folders.RATINGS_FOLDER)
-        statusCodeSeasons = self.__BackupTraktItemsByType("seasons", Folders.RATINGS_FOLDER)
-        statusCodeShows = self.__BackupTraktItemsByType("shows", Folders.RATINGS_FOLDER)
-
-
-        if (statusCodeMovies != StatusCodes.EXPORTER_OK or statusCodeEpisodes != StatusCodes.EXPORTER_OK
-            or statusCodeSeasons != StatusCodes.EXPORTER_OK or statusCodeShows != StatusCodes.EXPORTER_OK):
-
-            self.logger.ShowMessage("Ratings backup finished with errors. Check previous logs".format(errors), UI.ERROR_LOG)
-        else:
-            self.logger.ShowMessage("Ratings data successfully exported to json file", UI.SUCCESS_LOG)
-
-    def __BackupCollection(self):
-        self.logger.ShowMessage("Starting backup of collection...")
-        statusCodeMovies = self.__BackupTraktItemsByType("movies", Folders.COLLECTION_FOLDER)
-        statusCodeShows = self.__BackupTraktItemsByType("shows", Folders.COLLECTION_FOLDER)
-
-        if (statusCodeMovies != StatusCodes.EXPORTER_OK or statusCodeShows != StatusCodes.EXPORTER_OK):
-            self.logger.ShowMessage("Collection backup finished with errors. Check previous logs", UI.ERROR_LOG)
-        else:
-            self.logger.ShowMessage("Collection data successfully exported to json file", UI.SUCCESS_LOG)
-        
-
-    def __BackupWatchlist(self):
-        self.logger.ShowMessage("Starting backup of watchlist...")
-        statusCodeMovies = self.__BackupTraktItemsByType("movies", Folders.WATCHLIST_FOLDER)
-        statusCodeShows = self.__BackupTraktItemsByType("shows", Folders.WATCHLIST_FOLDER)
-
-        if (statusCodeMovies != StatusCodes.EXPORTER_OK and statusCodeShows != StatusCodes.EXPORTER_OK):
-            self.logger.ShowMessage("Watchlist backup finished with errors. Check previous logs", UI.ERROR_LOG)
-        else:
-            self.logger.ShowMessage("Watchlist data successfully exported to json file", UI.SUCCESS_LOG)
-
-    def __BackupWatched(self):
-        self.logger.ShowMessage("Starting backup of watched...")
-        statusCodeMovies = self.__BackupTraktItemsByType("movies", Folders.WATCHED_FOLDER)
-        statusCodeShows = self.__BackupTraktItemsByType("shows", Folders.WATCHED_FOLDER)
-
-        if (statusCodeMovies != StatusCodes.EXPORTER_OK and statusCodeShows != StatusCodes.EXPORTER_OK):
-            self.logger.ShowMessage("Watched backup finished with errors. Check previous logs", UI.ERROR_LOG)
-        else:
-            self.logger.ShowMessage("Watched data successfully exported to json file", UI.SUCCESS_LOG)
 
     def __BackupLists(self):
         self.logger.ShowMessage("Starting backup of lists...")
@@ -167,6 +120,27 @@ class AppController():
             self.logger.ShowMessage("Error getting lists from trakt.", UI.ERROR_LOG)
             self.logger.ShowMessage("Backup of lists finished with errors. Check previous logs", UI.ERROR_LOG)            
         
+    def __BackupTraktItem(self, item, folder):
+        self.logger.ShowMessage("Starting backup of {}...".format(item))
+        statusCodeMovies = self.__BackupTraktItemsByType("movies", folder)
+        statusCodeShows = self.__BackupTraktItemsByType("shows", folder)
+        
+        # Only export seasons and episodes type for ratings and watchlist.
+        # Collection and Watched do not have seasons and they already include the information. 
+        if (folder == Folders.RATINGS_FOLDER or folder == Folders.WATCHLIST_FOLDER):
+            statusCodeSeasons = self.__BackupTraktItemsByType("seasons", folder)
+            statusCodeEpisodes = self.__BackupTraktItemsByType("episodes", folder)
+        else:
+            # Set to EXPORTER_OK if item has no seasons or episodes type
+            statusCodeSeasons = StatusCodes.EXPORTER_OK
+            statusCodeEpisodes = StatusCodes.EXPORTER_OK
+
+        if (statusCodeMovies != StatusCodes.EXPORTER_OK or statusCodeEpisodes != StatusCodes.EXPORTER_OK
+            or statusCodeSeasons != StatusCodes.EXPORTER_OK or statusCodeShows != StatusCodes.EXPORTER_OK):
+
+            self.logger.ShowMessage("{} backup finished with errors. Check previous logs".format(item), UI.ERROR_LOG)
+        else:
+            self.logger.ShowMessage("{} data successfully exported to json file".format(item), UI.SUCCESS_LOG)
     
     def __BackupTraktItemsByType(self, type, folder):
         clientID = self.settings[Settings.CLIENT_ID]
@@ -218,23 +192,32 @@ class AppController():
         self.exporter.SetBackupFolder(folder)
         self.__SaveConfig()
 
-    def GetHistoryData(self, sender):
-        self.logger.ShowMessage("Querying database for {} plays...".format(sender))
+    def GetHistoryData(self, movies, episodes, year):
+        self.logger.ShowMessage("Querying database for plays...")
         plays = []
 
-        if (sender == UI.SHOW_HISTORY):
-            plays, statusCode = self.database.GetHistory()
-        elif (sender == UI.SHOW_EPISODES):
-            plays, statusCode = self.database.GetEpisodes()
+        if (movies and episodes):
+            plays, statusCode = self.database.GetHistoryByYear(year)
+        elif (episodes):
+            plays, statusCode = self.database.GetEpisodesByYear(year)
         else:
-            plays, statusCode = self.database.GetMovies()
-
+            plays, statusCode = self.database.GetMoviesByYear(year)
+        
         if (statusCode != StatusCodes.DATABASE_OK):
             self.logger.ShowMessage("Request finished with an error. Check previous logs", UI.ERROR_LOG)
         else:
             statusCode = StatusCodes.CONTROLLER_OK
 
         return plays, statusCode
+    
+    def GetHistoryYears(self):
+        years, statusCode = self.database.GetHistoryYears()
+        if (statusCode != StatusCodes.DATABASE_OK):
+            self.logger.ShowMessage("Could not get history years. Check previous logs", UI.ERROR_LOG)
+        else:
+            statusCode = StatusCodes.CONTROLLER_OK
+
+        return years, statusCode
     
     def RefreshTraktToken(self):
         self.logger.ShowMessage("Refreshing access token...")
@@ -245,6 +228,16 @@ class AppController():
             self.__SaveConfig()
         else:
             self.logger.ShowMessage("Could not refresh token. Check previous logs", UI.ERROR_LOG)
+
+    def DeleteTraktToken(self):
+        self.logger.ShowMessage("Deleting tokens...")
+        statusCode = self.database.DeleteTokens()
+        if (statusCode == StatusCodes.DATABASE_OK):
+            self.settings[Settings.ACCESS_TOKEN] = ""
+            self.settings[Settings.REFRESH_TOKEN] = ""
+            self.logger.ShowMessage("Tokens successfully deleted", UI.SUCCESS_LOG)
+        else:
+            self.logger.ShowMessage("Could not delete tokens. Check previous logs", UI.ERROR_LOG)
     
     def __ProcessTraktPlays(self, plays):
 
@@ -294,7 +287,7 @@ class AppController():
         watchedAt = watchedAt.astimezone(tz.tzlocal()).strftime(formatTo)
         return watchedAt
 
-    def __TraktUserAuthorized(self):
+    def TraktUserAuthorized(self):
         if (len(self.settings[Settings.ACCESS_TOKEN]) == 64):
             return True
         else:

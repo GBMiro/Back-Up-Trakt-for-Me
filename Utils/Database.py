@@ -38,18 +38,32 @@ BACKUP_FOLDER_COLUMN = "backup_folder"
 
 GET_HISTORY = """SELECT type, play_ID, show_title as "title", episode_title, season, number, watched_at_local
                 FROM episodes
+                WHERE watched_at_local like "%{}%"
                 UNION
                 SELECT type, play_ID, title, NULL, NULL, NULL, watched_at_local
                 FROM movies
+                WHERE watched_at_local like "%{}%"
                 ORDER BY watched_at_local DESC"""
 
 GET_EPISODES = """SELECT type, play_ID, show_title as "title", episode_title, season, number, watched_at_local
                 FROM episodes
+                WHERE watched_at_local like "%{}%"
                 ORDER BY watched_at_local DESC"""
 
 GET_MOVIES = """SELECT *
             FROM movies
+            WHERE watched_at_local like "%{}%"
             ORDER BY watched_at_local DESC"""
+
+GET_HISTORY_YEARS = """ SELECT strftime('%Y', watched_at_local) as year
+                        FROM episodes
+						GROUP BY year
+                        UNION
+                        SELECT strftime('%Y', watched_at_local)
+                        FROM movies
+                        GROUP BY strftime('%Y', watched_at_local)
+                        ORDER BY strftime('%Y', watched_at_local) DESC
+                        """
 
 GET_SETTINGS = """SELECT * FROM settings"""
 
@@ -61,12 +75,15 @@ INSERT_EPISODE = """INSERT INTO episodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CON
 
 INSERT_MOVIE = """INSERT INTO movies VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (play_ID) DO NOTHING"""
 
-INSERT_SETTINGS = """INSERT INTO settings VALUES (?,?,?,?,?,?) ON CONFLICT (client_id, client_secret) DO NOTHING"""
+INSERT_SETTINGS = """INSERT INTO settings VALUES (?,?,?,?,?) ON CONFLICT (client_id, client_secret) DO NOTHING"""
 
 # UPDATE QUERYS
 
 UPDATE_SETTINGS = """UPDATE settings
                         SET client_id = ?, client_secret = ?, access_token = ?, refresh_token = ?, backup_folder = ?"""
+
+DELETE_TOKENS = """ UPDATE settings
+                    SET access_token = "", refresh_token = "" """
 
 # TABLES CHECK & CREATION
 

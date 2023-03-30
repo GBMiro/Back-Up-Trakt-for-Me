@@ -17,14 +17,14 @@ class ExporterJSON:
         self.logger.ShowMessage("Creating backup folders...")
 
         date = datetime.now().strftime("%Y%m%d %H.%M.%S")
-        self.backupFolder = '.\\{}'.format(date) if (self.path is None) else self.path + '\\{}'.format(date)
+        self.backupFolder = os.path.join('.','{}'.format(date)) if (self.path is None) else os.path.join(self.path, '{}'.format(date))
 
         self.__CreateFolder(self.backupFolder)
-        self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.RATINGS_FOLDER))
-        self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.WATCHED_FOLDER))
-        self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.WATCHLIST_FOLDER))
-        self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.COLLECTION_FOLDER))
-        self.__CreateFolder(self.backupFolder + '\\{}'.format(Folders.LISTS_FOLDER))
+        self.__CreateFolder(os.path.join(self.backupFolder, '{}'.format(Folders.RATINGS_FOLDER)))
+        self.__CreateFolder(os.path.join(self.backupFolder, '{}'.format(Folders.WATCHED_FOLDER)))
+        self.__CreateFolder(os.path.join(self.backupFolder, '{}'.format(Folders.WATCHLIST_FOLDER)))
+        self.__CreateFolder(os.path.join(self.backupFolder, '{}'.format(Folders.COLLECTION_FOLDER)))
+        self.__CreateFolder(os.path.join(self.backupFolder, '{}'.format(Folders.LISTS_FOLDER)))
 
     def __CreateFolder(self, folder):
         try:
@@ -35,7 +35,7 @@ class ExporterJSON:
             self.logger.ShowMessage("An error occurred creating folder {}".format(err), UI.ERROR_LOG)
 
     def ExportData(self, data, folder, filename):
-        filePath = self.backupFolder + '\\{}\\{}.json'.format(folder, filename)
+        filePath = os.path.join(self.backupFolder,'{}'.format(folder),'{}.json'.format(filename))
         statusCode = StatusCodes.EXPORTER_OK
         try:
             with open(filePath, 'w', encoding='utf-8') as file:
