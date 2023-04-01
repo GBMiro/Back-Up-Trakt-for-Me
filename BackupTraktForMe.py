@@ -127,7 +127,7 @@ def AddColumnsToTable(movies, episodes):
 def BuildUserInterface():
 
     GUI.create_context()
-    GUI.create_viewport(title='Backup Trakt for Me', width=UI.VIEWPORT_MIN_WIDTH, height=UI.VIEWPORT_MIN_HEIGHT)
+    GUI.create_viewport(title='Back Up Trakt for Me', width=UI.VIEWPORT_MIN_WIDTH, height=UI.VIEWPORT_MIN_HEIGHT)
 
     with GUI.window(tag=UI.MAIN_WINDOW, no_collapse=True, no_move=True, show=True, no_title_bar=True, width=GUI.get_viewport_width(), height=GUI.get_viewport_height()):
         with GUI.tab_bar():
@@ -135,7 +135,7 @@ def BuildUserInterface():
                 # Trakt backup
                 GUI.add_spacer(height=20)
                 with GUI.group(horizontal=True):
-                    GUI.add_button(tag=UI.BACKUP, label="Backup Trakt", callback=BackupTrakt)
+                    GUI.add_button(tag=UI.BACKUP, label="Back Up Trakt", callback=BackupTrakt)
                 
                 GUI.add_text()
                 GUI.add_separator()
@@ -195,7 +195,7 @@ def BuildUserInterface():
         with GUI.child_window(tag=UI.CONSOLE_WINDOW, label="Log"):
             pass
 
-parser = argparse.ArgumentParser(prog="Backup Trakt for Me")
+parser = argparse.ArgumentParser(prog="Back Up Trakt for Me")
 
 parser.add_argument('--no_user_interface', action='store_false', help='disables user interface (use this to backup periodically with an automatic task)')
 
