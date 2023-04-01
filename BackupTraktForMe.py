@@ -46,7 +46,7 @@ def ScrollDown():
 # Updates YEAR_COMBO values
 def UpdateUIYearsCombo():
     yearsDB, statusCode = controller.GetHistoryYears()
-    comboYears = UI.YEARS_LIST
+    comboYears = UI.YEARS_LIST.copy()
     if (statusCode == StatusCodes.CONTROLLER_OK):
         for year in yearsDB:
             comboYears.append(year['year'])    
